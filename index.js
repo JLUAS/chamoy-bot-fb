@@ -61,16 +61,19 @@ app.post('/webhook', async (req, res) => {
                 entry.changes.forEach((change) => {
                     if (change.field === 'feed' && change.value.item === 'comment') {
                         const commentText = change.value.message;
-                        const commenterId = change.value.from.id;
-                        const postId = change.value.post_id;
-
-                        // Verifica si es posible enviar un mensaje privado
-                        if (change.value.verb === 'add' && change.value.is_private) {
-                            enviarMensajePrivado(commenterId, "¡Gracias por tu comentario!");
-                        } else {
-                            // Responder con un comentario público
-                            responderComentarioPublico(postId, "¡Gracias por comentar!");
-                        }
+                        const commenterId = change.value.from.id; // ID del usuario que comenta
+                        const commenterName = change.value.from.name; // Nombre del usuario que comenta
+                        console.log(commentText,commenterId,commenterName)
+                        // Generar una respuesta con OpenAI
+                        openai.chat.completions.create({
+                            model: 'gpt-3.5-turbo',
+                            messages: [
+                                { role: 'system', content: Eres un asistente profesional para responder comentarios en Facebook de la empresa Chamoy la Avispa. Responderas al siguiente comentario enviandole un mensaje privado: "${commentText}", cuyo nombre es: "${commenterName}" },
+                            ],
+                        }).then((response) => {
+                            const reply = response.choices[0].message.content;
+                            enviarMensajeTexto(commenterId, reply);
+                        });
                     }
                 });
             }
@@ -79,55 +82,6 @@ app.post('/webhook', async (req, res) => {
 
     res.sendStatus(200);
 });
-
-function enviarMensajePrivado(userId, mensaje) {
-    const messageData = {
-        recipient: {
-            id: userId
-        },
-        message: {
-            text: mensaje
-        }
-    };
-
-    request({
-        uri: 'https://graph.facebook.com/v12.0/me/messages',
-        qs: { access_token: APP_TOKEN },
-        method: 'POST',
-        json: messageData
-    }, function (error, response, body) {
-        if (error) {
-            console.error('Error al enviar mensaje privado:', error);
-        } else if (response.statusCode !== 200) {
-            console.error('Error en la respuesta de la API de Facebook:', body);
-        } else {
-            console.log('Mensaje privado enviado:', body);
-        }
-    });
-}
-
-function responderComentarioPublico(postId, mensaje) {
-    const messageData = {
-        message: mensaje
-    };
-
-    request({
-        uri: `https://graph.facebook.com/v12.0/${postId}/comments`,
-        qs: { access_token: APP_TOKEN },
-        method: 'POST',
-        json: messageData
-    }, function (error, response, body) {
-        if (error) {
-            console.error('Error al responder comentario público:', error);
-        } else if (response.statusCode !== 200) {
-            console.error('Error en la respuesta de la API de Facebook:', body);
-        } else {
-            console.log('Comentario público respondido:', body);
-        }
-    });
-}
-
-
 
 
 function getMessage(event){
@@ -173,7 +127,7 @@ function enviarMensajeTexto(senderID, mensaje){
 function callSendAPI(messageData){
 	//api de facebook
 	request({
-		uri: 'https://graph.facebook.com/v2.6/500155363187033/messages',
+		uri: 'https://graph.facebook.com/v2.6/me/messages',
 		qs: {access_token: APP_TOKEN},
 		method: 'POST',
 		json: messageData
@@ -184,5 +138,3 @@ function callSendAPI(messageData){
 			console.log('Mensaje enviado', messageData)
 	})
 }
-
-
