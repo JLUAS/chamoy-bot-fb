@@ -68,7 +68,7 @@ app.post('/webhook', async (req, res) => {
                         openai.chat.completions.create({
                             model: 'gpt-3.5-turbo',
                             messages: [
-                                { role: 'system', content: Eres un asistente profesional para responder comentarios en Facebook de la empresa Chamoy la Avispa. Responderas al siguiente comentario enviandole un mensaje privado: "${commentText}", cuyo nombre es: "${commenterName}" },
+                                { role: 'system', content: `Eres un asistente profesional para responder comentarios en Facebook de la empresa Chamoy la Avispa. Responderas al siguiente comentario enviandole un mensaje privado: "${commentText}", cuyo nombre es: "${commenterName}"` },
                             ],
                         }).then((response) => {
                             const reply = response.choices[0].message.content;
