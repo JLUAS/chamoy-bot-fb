@@ -60,28 +60,16 @@ app.post('/webhook', async (req, res) => {
             if (entry.changes && Array.isArray(entry.changes)) {
                 entry.changes.forEach((change) => {
                     if (change.field === 'feed' && change.value.item === 'comment') {
-                        const commentText = change.value.message;
-                        const commenterId = change.value.from.id; // ID del usuario que comenta
-                        const commenterName = change.value.from.name; // Nombre del usuario que comenta
-                        console.log(commentText,commenterId,commenterName)
-                        // Generar una respuesta con OpenAI
-                        openai.chat.completions.create({
-                            model: 'gpt-3.5-turbo',
-                            messages: [
-                                { role: 'system', content: `Eres un asistente profesional para responder comentarios en Facebook de la empresa Chamoy la Avispa. Responderas al siguiente comentario enviandole un mensaje privado: "${commentText}", cuyo nombre es: "${commenterName}"` },
-                            ],
-                        }).then((response) => {
-                            const reply = response.choices[0].message.content;
-                            enviarMensajeTexto(commenterId, reply);
-                        });
+                        const postId = change.value.post_id; // ID del post relacionado
+                        enviarMensajeConBotones(postId); // Responder al comentario con botones
                     }
                 });
             }
         });
     }
-
     res.sendStatus(200);
 });
+
 
 
 function getMessage(event){
@@ -127,7 +115,7 @@ function enviarMensajeTexto(senderID, mensaje){
 function callSendAPI(messageData){
 	//api de facebook
 	request({
-		uri: 'https://graph.facebook.com/v2.6/me/messages',
+		uri: 'https://graph.facebook.com/v2.6/500155363187033/messages',
 		qs: {access_token: APP_TOKEN},
 		method: 'POST',
 		json: messageData
@@ -137,4 +125,53 @@ function callSendAPI(messageData){
 		else
 			console.log('Mensaje enviado', messageData)
 	})
+}
+
+function enviarMensajeConBotones(postId) {
+    const messageData = {
+        recipient: {
+            post_id: postId // ID del post en el cual responder
+        },
+        message: {
+            attachment: {
+                type: "template",
+                payload: {
+                    template_type: "button",
+                    text: "Of course, what is your budget for the gift?",
+                    buttons: [
+                        {
+                            type: "postback",
+                            title: "LESS THAN $20",
+                            payload: "GIFT_BUDGET_20_PAYLOAD"
+                        },
+                        {
+                            type: "postback",
+                            title: "$20 TO $50",
+                            payload: "GIFT_BUDGET_20_TO_50_PAYLOAD"
+                        },
+                        {
+                            type: "postback",
+                            title: "MORE THAN $50",
+                            payload: "GIFT_BUDGET_50_PAYLOAD"
+                        }
+                    ]
+                }
+            }
+        }
+    };
+
+    request({
+        uri: `https://graph.facebook.com/v21.0/${process.env.PAGE_ID}/messages`,
+        qs: { access_token: APP_TOKEN },
+        method: 'POST',
+        json: messageData
+    }, function (error, response, body) {
+        if (error) {
+            console.error('Error al enviar mensaje con botones:', error);
+        } else if (response.statusCode !== 200) {
+            console.error('Error en la respuesta de la API de Facebook:', response.body);
+        } else {
+            console.log('Mensaje con botones enviado:', body);
+        }
+    });
 }
