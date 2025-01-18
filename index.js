@@ -1,8 +1,9 @@
+// Importar las dependencias necesarias
 const express = require('express');
 const bodyParser = require('body-parser');
-const request = require('request');
 const dotenv = require('dotenv');
 const { OpenAI } = require('openai');
+const axios = require('axios'); // Sustituto de request
 
 dotenv.config();
 
@@ -108,7 +109,7 @@ function delay(ms) {
 
 // Enviar mensajes de texto a Messenger
 async function enviarMensajeTexto(senderID, mensaje) {
-    var messageData = {
+    const messageData = {
         recipient: {
             id: senderID
         },
@@ -118,30 +119,32 @@ async function enviarMensajeTexto(senderID, mensaje) {
         messaging_type: 'MESSAGE_TAG',
         tag: 'CONFIRMED_EVENT_UPDATE' // Cambiar etiqueta según el caso
     };
-    callSendAPI(messageData);
+    await callSendAPI(messageData);
 }
 
 async function callSendAPI(messageData) {
-    console.log("Enviando mensaje:", messageData);
-    request({
-        uri: 'https://graph.facebook.com/v21.0/me/messages',
-        qs: { access_token: APP_TOKEN_M },
-        method: 'POST',
-        json: messageData
-    }, function(error, response, data) {
-        if (error) {
-            console.error('Error al enviar el mensaje:', error);
-        } else if (response.body.error) {
-            console.error('Error en la API de Messenger:', response.body.error);
-            callSendAPI2(messageData)
+    try {
+        console.log("Enviando mensaje:", messageData);
+        const response = await axios.post(
+            'https://graph.facebook.com/v21.0/me/messages',
+            messageData,
+            {
+                params: { access_token: APP_TOKEN_M },
+                headers: { 'Content-Type': 'application/json' }
+            }
+        );
+        console.log('Mensaje enviado exitosamente:', response.data);
+    } catch (error) {
+        if (error.response) {
+            console.error('Error en la API de Messenger:', error.response.data);
+            await callSendAPI2(messageData);
         } else {
-            console.log('Mensaje enviado exitosamente:', data);
+            console.error('Error al enviar el mensaje:', error.message);
         }
-    });
+    }
 }
 
-async function callSendAPI2(messageData){
-    await delay(600000)
-    callSendAPI(messageData)
+async function callSendAPI2(messageData) {
+    await delay(600000);
+    await callSendAPI(messageData);
 }
-
