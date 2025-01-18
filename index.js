@@ -1,58 +1,46 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const axios = require('axios');
-const request = require('request')
-const dotenv = require('dotenv')
-const { OpenAI } = require('openai'); // Usando la API de OpenAI
+const request = require('request');
+const dotenv = require('dotenv');
+const { OpenAI } = require('openai');
+
+dotenv.config();
+
 const app = express();
 app.use(bodyParser.json());
 
-require('dotenv').config();
-
-const APP_TOKEN = process.env.APP_TOKEN
+// Variables de entorno
+const APP_TOKEN = process.env.APP_TOKEN;
+const APP_TOKEN_M = process.env.APP_TOKEN_M;
 const { Configuration, OpenAIApi } = require('openai');
 
-// Accede a las claves desde process.env
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-// Inicializa OpenAI con tu clave de API desde el archivo .env
+// Inicializar OpenAI
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY, // Usando la clave de la variable de entorno
-  });
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
-  var PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-  app.listen(PORT,function(){
-	console.log('Server listen localhost:3000')
-})
+// Iniciar servidor
+app.listen(PORT, function () {
+    console.log(`Server listening on localhost:${PORT}`);
+});
 
-app.get('/',function(req, res){
-	res.send('Abriendo el puerto desde mi pc Local con http://ngrok.com')
-})
+// Endpoint de prueba
+app.get('/', function (req, res) {
+    res.send('Servidor corriendo correctamente. Accede a través de http://ngrok.com');
+});
 
-app.get('/webhook',function(req, res){
-	if(req.query['hub.verify_token'] === APP_TOKEN){
-		res.send(req.query['hub.challenge'])
-	}else{
-		res.send('Tu no tienes que entrar aqui')
-	}
-})
+// Verificación del webhook
+app.get('/webhook', function (req, res) {
+    if (req.query['hub.verify_token'] === APP_TOKEN) {
+        res.send(req.query['hub.challenge']);
+    } else {
+        res.send('Token de verificación inválido.');
+    }
+});
 
-// app.post('/webhook',function(req, res){
-// 	var data = req.body
-// 	if(data.object == 'page'){
-// 		data.entry.forEach(function(pageEntry){
-// 			pageEntry.messaging.forEach(function(messagingEvent){
-// 				if(messagingEvent.message){	
-//                     console.log("Mensjae recibido, procesando a get message")				
-// 					getMessage(messagingEvent)
-// 				}
-// 			})
-// 		})
-// 	}
-// 	res.sendStatus(200)
-// })
-
+// Webhook para recibir mensajes
 app.post('/webhook', async (req, res) => {
     const data = req.body;
     if (data.object === 'page') {
@@ -61,18 +49,25 @@ app.post('/webhook', async (req, res) => {
                 entry.changes.forEach((change) => {
                     if (change.field === 'feed' && change.value.item === 'comment') {
                         const commentText = change.value.message;
-                        const commenterId = change.value.from.id; // ID del usuario que comenta
-                        const commenterName = change.value.from.name; // Nombre del usuario que comenta
-                        console.log(commentText,commenterId,commenterName)
+                        const commenterId = change.value.from.id;
+                        const commenterName = change.value.from.name;
+
+                        console.log(`Comentario recibido: "${commentText}" de ${commenterName} (${commenterId})`);
+
                         // Generar una respuesta con OpenAI
                         openai.chat.completions.create({
-                            model: 'gpt-3.5-turbo',
+                            model: 'ft:gpt-4o-mini-2024-07-18:personal::AbFUH44f',
                             messages: [
-                                { role: 'system', content: `Eres un asistente profesional para responder comentarios en Facebook de la empresa Chamoy la Avispa. Responderas al siguiente comentario enviandole un mensaje privado: "${commentText}", cuyo nombre es: "${commenterName}"` },
+                                { role: 'system', content: `Eres un asistente profesional para responder comentarios en Facebook de la empresa Chamoy la Avispa. Responde al comentario de manera personalizada.` },
+                                { role: 'user', content: `Comentario: "${commentText}", Nombre: "${commenterName}"` },
                             ],
-                        }).then((response) => {
+                        })
+                        .then((response) => {
                             const reply = response.choices[0].message.content;
                             enviarMensajeTexto(commenterId, reply);
+                        })
+                        .catch((err) => {
+                            console.error('Error al generar respuesta con OpenAI:', err.message);
                         });
                     }
                 });
@@ -83,58 +78,70 @@ app.post('/webhook', async (req, res) => {
     res.sendStatus(200);
 });
 
-
-function getMessage(event){
-	var senderID = event.sender.id
-	var messageText = event.message.text
-
-	evaluarMensaje(senderID, messageText)
+// Procesar mensajes entrantes
+function getMessage(event) {
+    const senderID = event.sender.id;
+    const messageText = event.message.text;
+    evaluarMensaje(senderID, messageText);
 }
 
-async function evaluarMensaje(senderID, messageText){
-
-    // Generar respuesta con OpenAI
+async function evaluarMensaje(senderID, messageText) {
     openai.chat.completions.create({
-        model: 'gpt-3.5-turbo', // o el modelo que prefieras
+        model: 'ft:gpt-4o-mini-2024-07-18:personal::AbFUH44f',
         messages: [
-          { role: 'system', content: `Eres un asistente profesional para responder a posibles clientes de la empresa Chamoy la Avispa.` },
-          { role: 'user', content: `${messageText}` },
-        ]
-      }).then(response => {
+            { role: 'system', content: `Eres un asistente profesional para responder a posibles clientes de la empresa Chamoy la Avispa.` },
+            { role: 'user', content: `${messageText}` },
+        ],
+    })
+    .then((response) => {
         const extractedResponse = response.choices[0].message.content;
-        enviarMensajeTexto(senderID, extractedResponse)
-      }).catch((err) => {
-        console.error("Error al procesar openAI")
-        res.status(500).json({ error: 'Error al procesar con OpenAI' });
-      })
+        enviarMensajeTexto(senderID, extractedResponse);
+    })
+    .catch((err) => {
+        console.error('Error al procesar OpenAI:', err.message);
+    });
 }
 
-
-//enviar texto plano
-function enviarMensajeTexto(senderID, mensaje){
-	var messageData = {
-		recipient : {
-			id: senderID
-		},
-		message: {
-			text: mensaje,
-		}
-	}
-
-	callSendAPI(messageData)
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function callSendAPI(messageData){
-	//api de facebook
-	request({
-		uri: 'https://graph.facebook.com/v2.6/me/messages',
-		qs: {access_token: APP_TOKEN},
-		method: 'POST',
-		json: messageData
-	},function(error, response, data){
-		if(error)
-			console.log('No es posible enviar el mensaje')
-		else
-			console.log('Mensaje enviado', messageData)
-	})
+// Enviar mensajes de texto a Messenger
+async function enviarMensajeTexto(senderID, mensaje) {
+    var messageData = {
+        recipient: {
+            id: senderID
+        },
+        message: {
+            text: mensaje
+        },
+        messaging_type: 'MESSAGE_TAG',
+        tag: 'CONFIRMED_EVENT_UPDATE' // Cambiar etiqueta según el caso
+    };
+    callSendAPI(messageData);
 }
+
+async function callSendAPI(messageData) {
+    console.log("Enviando mensaje:", messageData);
+    request({
+        uri: 'https://graph.facebook.com/v21.0/me/messages',
+        qs: { access_token: APP_TOKEN_M },
+        method: 'POST',
+        json: messageData
+    }, function(error, response, data) {
+        if (error) {
+            console.error('Error al enviar el mensaje:', error);
+        } else if (response.body.error) {
+            console.error('Error en la API de Messenger:', response.body.error);
+            callSendAPI2(messageData)
+        } else {
+            console.log('Mensaje enviado exitosamente:', data);
+        }
+    });
+}
+
+async function callSendAPI2(messageData){
+    await delay(600000)
+    callSendAPI(messageData)
+}
+
