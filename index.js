@@ -123,26 +123,48 @@ async function enviarMensajeTexto(senderID, mensaje) {
 }
 
 async function callSendAPI(messageData) {
-    try {
-        console.log("Enviando mensaje:", messageData);
-        const response = await axios.post(
-            'https://graph.facebook.com/v21.0/me/messages',
-            messageData,
-            {
-                params: { access_token: APP_TOKEN_M },
-                headers: { 'Content-Type': 'application/json' }
+    let attempts = 0; // Contador de intentos
+    const maxAttempts = 5; // Máximo número de intentos
+    const retryDelay = 6 * 60 * 60 * 1000; // 6 horas en milisegundos
+
+    while (attempts < maxAttempts) {
+        try {
+            console.log(`Intentando enviar mensaje. Intento #${attempts + 1}`);
+            const response = await axios.post(
+                'https://graph.facebook.com/v21.0/me/messages',
+                messageData,
+                {
+                    params: { access_token: APP_TOKEN_M },
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
+            console.log('Mensaje enviado exitosamente:', response.data);
+            return; // Salir del loop si se envía correctamente
+        } catch (error) {
+            attempts++;
+            if (error.response) {
+                console.error('Error en la API de Messenger:', error.response.data);
+            } else {
+                console.error('Error al enviar el mensaje:', error.message);
             }
-        );
-        console.log('Mensaje enviado exitosamente:', response.data);
-    } catch (error) {
-        if (error.response) {
-            console.error('Error en la API de Messenger:', error.response.data);
-            await callSendAPI2(messageData);
-        } else {
-            console.error('Error al enviar el mensaje:', error.message);
+
+            // Si se alcanzaron los intentos máximos, lanzar error
+            if (attempts >= maxAttempts) {
+                console.error('Se alcanzó el número máximo de intentos. No se pudo enviar el mensaje.');
+                return;
+            }
+
+            // Esperar antes de reintentar
+            console.log(`Esperando ${retryDelay / (60 * 60 * 1000)} horas antes de reintentar...`);
+            await delay(retryDelay);
         }
     }
 }
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 
 async function callSendAPI2(messageData) {
     await delay(600000);
