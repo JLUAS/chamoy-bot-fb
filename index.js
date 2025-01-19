@@ -187,8 +187,8 @@ async function callSendAPI(messageData) {
     } catch (error) {
         if (error.response) {
                 console.error('Error en la API de Messenger:', error.response.data);
-                console.log(userId)
                 const userId = messageData.recipient.id; // ID del destinatario
+                console.log(userId)
                 const mensaje = messageData.message.text; // Contenido del mensaje
                 insertarMensaje(userId, mensaje, false); // Guardar mensaje con enviado = false
             
