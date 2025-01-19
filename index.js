@@ -161,13 +161,31 @@ async function enviarMensajeTexto(senderID, mensaje) {
 
 // Función para insertar un mensaje en la base de datos
 function insertarMensaje(userId, mensaje, enviado) {
-    const query = `INSERT INTO Mensajes (userId, mensaje, enviado, createdAt) VALUES (?, ?, ?, NOW())`;
-    pool.query(query, [userId, mensaje, enviado], (err, results) => {
+    // Primero, verificar si el mensaje ya existe
+    const checkQuery = 'SELECT * FROM Mensajes WHERE userId = ? AND mensaje = ?';
+    
+    pool.query(checkQuery, [userId, mensaje], (err, results) => {
         if (err) {
-            console.error('Error al insertar el mensaje en la base de datos:', err.message);
-        } else {
-            console.log('Mensaje insertado correctamente en la base de datos:', results.insertId);
+            console.error('Error al verificar el mensaje en la base de datos:', err.message);
+            return;
         }
+        
+        // Si ya existe el mensaje, hacer un log
+        if (results.length > 0) {
+            console.log('Mensaje ya registrado.');
+            return; // Si el mensaje ya existe, no insertamos nada
+        }
+        
+        // Si el mensaje no existe, proceder a insertarlo
+        const insertQuery = `INSERT INTO Mensajes (userId, mensaje, enviado, createdAt) VALUES (?, ?, ?, NOW())`;
+        
+        pool.query(insertQuery, [userId, mensaje, enviado], (err, results) => {
+            if (err) {
+                console.error('Error al insertar el mensaje en la base de datos:', err.message);
+            } else {
+                console.log('Mensaje insertado correctamente en la base de datos:', results.insertId);
+            }
+        });
     });
 }
 
