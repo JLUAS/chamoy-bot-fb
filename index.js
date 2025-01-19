@@ -201,6 +201,19 @@ async function callSendAPI(messageData) {
             }
         );
         console.log('Mensaje enviado exitosamente:', response.data);
+         // Eliminar el mensaje de la base de datos si el envío fue exitoso
+         const userId = messageData.recipient.id;
+         const mensaje = messageData.message.text;
+         
+         // Eliminar mensaje previamente insertado si ya existe
+         const deleteQuery = 'DELETE FROM Mensajes WHERE userId = ? AND mensaje = ?';
+         pool.query(deleteQuery, [userId, mensaje], (err, results) => {
+             if (err) {
+                 console.error('Error al eliminar el mensaje:', err.message);
+             } else {
+                 console.log('Mensaje eliminado correctamente de la base de datos.');
+             }
+         });
         return; // Salir del loop si se envía correctamente
     } catch (error) {
         if (error.response) {
@@ -209,7 +222,6 @@ async function callSendAPI(messageData) {
                 console.log(userId)
                 const mensaje = messageData.message.text; // Contenido del mensaje
                 insertarMensaje(userId, mensaje, false); // Guardar mensaje con enviado = false
-            
         } else {
             console.error('Error al enviar el mensaje:', error.message);
         }
