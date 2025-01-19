@@ -139,25 +139,10 @@ async function reenviarMensaje(id, userId, texto) {
 
     try {
         await callSendAPI(messageData);
-        // Si el envío es exitoso, marcar como enviado
-        marcarMensajeComoEnviado(id);
     } catch (error) {
         console.error(`Error al enviar mensaje ID: ${id}`, error.message);
     }
 }
-
-// Función para marcar un mensaje como enviado en la base de datos
-function marcarMensajeComoEnviado(id) {
-    const query = `UPDATE Mensajes SET enviado = true WHERE id = ?`;
-    pool.query(query, [id], (err) => {
-        if (err) {
-            console.error(`Error al actualizar el estado del mensaje ID: ${id}`, err.message);
-        } else {
-            console.log(`Mensaje ID: ${id} marcado como enviado.`);
-        }
-    });
-}
-
 
 // Enviar mensajes de texto a Messenger
 async function enviarMensajeTexto(senderID, mensaje) {
@@ -201,7 +186,8 @@ async function callSendAPI(messageData) {
         return; // Salir del loop si se envía correctamente
     } catch (error) {
         if (error.response) {
-            console.error('Error en la API de Messenger:', error.response.data);
+                console.error('Error en la API de Messenger:', error.response.data);
+                console.log(userId)
                 const userId = messageData.recipient.id; // ID del destinatario
                 const mensaje = messageData.message.text; // Contenido del mensaje
                 insertarMensaje(userId, mensaje, false); // Guardar mensaje con enviado = false
