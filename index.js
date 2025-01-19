@@ -200,7 +200,6 @@ async function callSendAPI(messageData) {
         console.log('Mensaje enviado exitosamente:', response.data);
         return; // Salir del loop si se envía correctamente
     } catch (error) {
-        attempts++;
         if (error.response) {
             console.error('Error en la API de Messenger:', error.response.data);
                 const userId = messageData.recipient.id; // ID del destinatario
