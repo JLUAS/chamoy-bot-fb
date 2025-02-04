@@ -95,38 +95,39 @@ app.post('/webhook', async (req, res) => {
         console.log("Instagram")
         data.entry.forEach((entry) => {
             console.log(entry)
-            // entry.changes.forEach(async (change) => {
-            //     if (change.field === 'comments' && change.value.item === 'comment') {
-            //         const commentData = change.value;
-            //         const commentText = commentData.text;
-            //         const mediaId = commentData.media.id;
-            //         const commentId = commentData.comment_id;
-            //         const username = commentData.username;
+            entry.changes.forEach(async (change) => {
+                console.log(change)
+                if (change.field === 'comments' && change.value.item === 'comment') {
+                    const commentData = change.value;
+                    const commentText = commentData.text;
+                    const mediaId = commentData.media.id;
+                    const commentId = commentData.comment_id;
+                    const username = commentData.username;
 
-            //         console.log(`Comentario de Instagram: ${commentText} de @${username}`);
+                    console.log(`Comentario de Instagram: ${commentText} de @${username}`);
 
-            //         try {
-            //             const gptResponse = await openai.chat.completions.create({
-            //                 model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-number:AwFSZoJI',
-            //                 messages: [
-            //                     { 
-            //                         role: 'system', 
-            //                         content: "Mismo sistema que para Facebook..." 
-            //                     },
-            //                     { 
-            //                         role: 'user', 
-            //                         content: `Comentario: "${commentText}", Usuario: @${username}` 
-            //                     },
-            //                 ],
-            //             });
+                    try {
+                        const gptResponse = await openai.chat.completions.create({
+                            model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-number:AwFSZoJI',
+                            messages: [
+                                { 
+                                    role: 'system', 
+                                    content: "Mismo sistema que para Facebook..." 
+                                },
+                                { 
+                                    role: 'user', 
+                                    content: `Comentario: "${commentText}", Usuario: @${username}` 
+                                },
+                            ],
+                        });
 
-            //             const respuesta = gptResponse.choices[0].message.content;
-            //             await responderComentarioInstagram(mediaId, respuesta);
-            //         } catch (err) {
-            //             console.error('Error:', err.message);
-            //         }
-            //     }
-            // });
+                        const respuesta = gptResponse.choices[0].message.content;
+                        await responderComentarioInstagram(mediaId, respuesta);
+                    } catch (err) {
+                        console.error('Error:', err.message);
+                    }
+                }
+            });
         });
     }
     if (data.object === 'page') {
