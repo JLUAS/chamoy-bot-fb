@@ -87,10 +87,20 @@ app.get('/webhook', function (req, res) {
     }
 });
 
-app.post('/instagram', function (req, res){
-    const data = req.body;
-    console.log(data)
-})
+app.get('/instagram', function (req, res) {
+    if (req.query['hub.verify_token'] === APP_TOKEN) {
+        res.send(req.query['hub.challenge']);
+    } else {
+        res.send('Token de verificación inválido.');
+    }
+});
+
+app.post('/instagram', function(req, res) {
+    console.log('Instagram request body:');
+    console.log(req.body);
+    received_updates.unshift(req.body);
+    res.sendStatus(200);
+  });
 
 // Webhook para recibir mensajes
 app.post('/webhook', async (req, res) => {
