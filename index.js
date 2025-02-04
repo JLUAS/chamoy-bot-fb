@@ -109,7 +109,7 @@ app.post('/webhook', async (req, res) => {
                             const gptResponse = await openai.chat.completions.create({
                                 model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-number:AwFSZoJI',
                                 messages: [
-                                    { role: 'system', content: 'Respondes comentarios de la pagina de facebook de productos de chamoy la avispa, si piden el numero dales el numero 8131056733.' },
+                                    { role: 'system', content: 'Respondes comentarios de la pagina de facebook de productos de chamoy la avispa, si piden el numero dales el numero 8131056733, asi mismo recuerda que no vendemos en tiendas departamentales y no das direcciones exactas, si te llegan a pedir la direccion, enviales este link donde se ven todos los distribuidores https://chamoyavispa.com/#/distribuidores.' },
                                     { role: 'user', content: `Comentario: "${commentText}", Nombre: "${commenterName}"` },
                                 ],
                             });
