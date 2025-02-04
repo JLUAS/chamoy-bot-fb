@@ -92,6 +92,7 @@ app.get('/webhook', function (req, res) {
 app.post('/webhook', async (req, res) => {
     const data = req.body;
     if (data.object === 'instagram') {
+        console.log("Instagram")
         data.entry.forEach((entry) => {
             entry.changes.forEach(async (change) => {
                 if (change.field === 'comments' && change.value.item === 'comment') {
