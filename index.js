@@ -87,10 +87,14 @@ app.get('/webhook', function (req, res) {
     }
 });
 
+app.post('/instagram', function (req, res){
+    const data = req.body;
+    console.log(data)
+})
+
 // Webhook para recibir mensajes
 app.post('/webhook', async (req, res) => {
     const data = req.body;
-    console.log(data.object)
     if (data.object === 'page') {
         data.entry.forEach((entry) => {
             if (entry.changes && Array.isArray(entry.changes)) {
