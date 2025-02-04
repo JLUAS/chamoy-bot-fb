@@ -110,19 +110,13 @@ app.post('/webhook', async (req, res) => {
                         const gptResponse = await openai.chat.completions.create({
                             model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-number:AwFSZoJI',
                             messages: [
-                                { 
-                                    role: 'system', 
-                                    content: "Mismo sistema que para Facebook..." 
-                                },
-                                { 
-                                    role: 'user', 
-                                    content: `Comentario: "${commentText}", Usuario: @${username}` 
-                                },
+                                { role: 'system', content:  "Eres el asistente oficial de la página de Facebook de Chamoy La Avispa. Responde de manera amigable y profesional a los comentarios de los clientes.  - Si preguntan por el número de contacto, proporciona el siguiente: 8131056733.  - Si preguntan cómo se usa el producto, dales el mismo número para obtener más información.  - No vendemos en tiendas departamentales. Si alguien pregunta dónde comprar, infórmales que pueden ver todos los distribuidores en este enlace: https://chamoyavispa.com/#/distribuidores.  - No proporciones direcciones exactas. Siempre redirige a la página de distribuidores.  - Si no sabes la respuesta a una pregunta, responde con un mensaje amable sugiriendo que contacten por WhatsApp al número proporcionado.  - Usa un tono respetuoso, cálido y breve en tus respuestas." },
+                                {role: 'user', content: `Comentario: "${commentText}", Usuario: @${username}`},
                             ],
                         });
 
                         const respuesta = gptResponse.choices[0].message.content;
-                        await responderComentarioInstagram(mediaId, respuesta);
+                        await responderComentarioInstagram(commentId, respuesta);
                     } catch (err) {
                         console.error('Error:', err.message);
                     }
@@ -209,17 +203,16 @@ app.post('/IA', async(req,res) => {
 })
 
 async function responderComentarioInstagram(mediaId, mensaje) {
-    const url = 'https://graph.instagram.com/v21.0/me/messages';
+    const url = `https://graph.instagram.com/v21.0/${mediaId}/comments`;
 
     const data = {
-        recipient: { id: recipientId }, // ID del usuario de Messenger
-        message: { text: mensaje },    // Mensaje a enviar
+        message: { text: mensaje },
     };
 
     try {
         const response = await axios.post(url, data,{
             params: {
-                access_token: APP_TOKEN_IG, // Token con permisos de páginas
+                access_token: APP_TOKEN_IG,
             },
             headers: {
                 'Content-Type': 'application/json',
