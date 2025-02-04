@@ -1,4 +1,3 @@
-// Importar las dependencias necesarias
 const express = require('express');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
@@ -91,34 +90,66 @@ app.get('/webhook', function (req, res) {
 });
 
 // Webhook para recibir mensajes
+// Webhook para recibir mensajes
 app.post('/webhook', async (req, res) => {
     const data = req.body;
     if (data.object === 'page') {
         data.entry.forEach((entry) => {
             if (entry.changes && Array.isArray(entry.changes)) {
-                entry.changes.forEach((change) => {
-                    if (change.field === 'feed' && change.value.item === 'comment') {
+                entry.changes.forEach(async (change) => {
+                    if (change.field === 'feed' && change.value.item === 'comment' && change.value.from.name != "Chamoy Avispa" && change.value.message != "undefined") {
                         const commentText = change.value.message;
-                        const commenterId = change.value.from.id;
+                        const commentId = change.value.comment_id; // ID del comentario
                         const commenterName = change.value.from.name;
 
-                        console.log(`Comentario recibido: "${commentText}" de ${commenterName} (${commenterId})`);
+                        console.log(`Comentario recibido: "${commentText}" de ${commenterName}`);
 
                         // Generar una respuesta con OpenAI
-                        openai.chat.completions.create({
-                            model: 'ft:gpt-4o-mini-2024-07-18:personal::AbFUH44f',
-                            messages: [
-                                { role: 'system', content: `Eres un asistente profesional para responder comentarios en Facebook de la empresa Chamoy la Avispa. Responde al comentario de manera personalizada.` },
-                                { role: 'user', content: `Comentario: "${commentText}", Nombre: "${commenterName}"` },
-                            ],
-                        })
-                        .then((response) => {
-                            const reply = response.choices[0].message.content;
-                            enviarMensajeTexto(commenterId, reply);
-                        })
-                        .catch((err) => {
-                            console.error('Error al generar respuesta con OpenAI:', err.message);
-                        });
+                        try {
+                            const gptResponse = await openai.chat.completions.create({
+                                model: 'ft:gpt-4o-mini-2024-07-18:personal::AbFUH44f',
+                                messages: [
+                                    { role: 'system', content: 'Eres un asistente profesional que responde comentarios en redes sociales de manera efectiva.' },
+                                    { role: 'user', content: `Comentario: "${commentText}", Nombre: "${commenterName}"` },
+                                ],
+                            });
+
+                            const respuesta = gptResponse.choices[0].message.content;
+
+                            // Responder al comentario en Facebook
+                            await responderComentario(commentId, respuesta);
+                        } catch (err) {
+                            console.error('Error al procesar el comentario:', err.message);
+                        }
+                    }
+                });
+            }
+            // Recorremos los eventos de mensajería
+            if (entry.messaging) {
+                entry.messaging.forEach(async (event) => {
+                    const senderId = event.sender.id; // ID del usuario
+                    const message = event.message?.text; // Texto del mensaje
+                    const id = process.env.PAGE_ID
+                    if (message && senderId != id ) {
+                        console.log(`Mensaje recibido: "${message}" de ${senderId}`);
+
+                        // Generar una respuesta con OpenAI
+                        try {
+                            const gptResponse = await openai.chat.completions.create({
+                                model: 'ft:gpt-3.5-turbo-1106:personal:chamoy:Av84mh4o',
+                                messages: [
+                                    { role: 'system', content: 'Eres un asistente profesional que responde mensajes de usuarios en Messenger de forma efectiva.' },
+                                    { role: 'user', content: `Mensaje: "${message}"` },
+                                ],
+                            });
+
+                            const respuesta = gptResponse.choices[0].message.content;
+
+                            // Enviar respuesta al usuario
+                            await enviarMensaje(senderId, respuesta);
+                        } catch (err) {
+                            console.error('Error al procesar el mensaje:', err.message);
+                        }
                     }
                 });
             }
@@ -128,132 +159,74 @@ app.post('/webhook', async (req, res) => {
     res.sendStatus(200);
 });
 
-async function reenviarMensaje(id, userId, texto) {
-    console.log(`Reintentando envío del mensaje ID: ${id} para el usuario: ${userId}`);
-    const messageData = {
-        recipient: { id: userId },
-        message: { text: texto },
-        messaging_type: 'MESSAGE_TAG',
-        tag: 'CONFIRMED_EVENT_UPDATE',
+
+app.post('/IA', async(req,res) => {
+    const{userSpeech} = req.body
+    const gptResponse = await openai.chat.completions.create({
+        model: "ft:gpt-4o-mini-2024-07-18:personal::AbFUH44f",
+        messages: [
+          { role: "system", content: "Eres un asistente del banco Getnet especializado en terminales de pago." },
+          { role: "user", content: userSpeech },
+        ],
+      });
+  
+      const botResponse = gptResponse.choices[0].message.content;
+      res.send(botResponse)
+})
+
+// Función para responder a un comentario en Facebook
+async function responderComentario(commentId, mensaje) {
+    const url = `https://graph.facebook.com/v15.0/${commentId}/comments`;
+
+    const data = {
+        message: mensaje,
     };
 
     try {
-        await callSendAPI(messageData);
-    } catch (error) {
-        console.error(`Error al enviar mensaje ID: ${id}`, error.message);
-    }
-}
-
-// Enviar mensajes de texto a Messenger
-async function enviarMensajeTexto(senderID, mensaje) {
-    const messageData = {
-        recipient: {
-            id: senderID
-        },
-        message: {
-            text: mensaje
-        },
-        messaging_type: 'MESSAGE_TAG',
-        tag: 'CONFIRMED_EVENT_UPDATE' // Cambiar etiqueta según el caso
-    };
-    await callSendAPI(messageData);
-}
-
-// Función para insertar un mensaje en la base de datos
-function insertarMensaje(userId, mensaje, enviado) {
-    // Primero, verificar si el mensaje ya existe
-    const checkQuery = 'SELECT * FROM Mensajes WHERE userId = ? AND mensaje = ?';
-    
-    pool.query(checkQuery, [userId, mensaje], (err, results) => {
-        if (err) {
-            console.error('Error al verificar el mensaje en la base de datos:', err.message);
-            return;
-        }
-        
-        // Si ya existe el mensaje, hacer un log
-        if (results.length > 0) {
-            console.log('Mensaje ya registrado.');
-            return; // Si el mensaje ya existe, no insertamos nada
-        }
-        
-        // Si el mensaje no existe, proceder a insertarlo
-        const insertQuery = `INSERT INTO Mensajes (userId, mensaje, enviado, createdAt) VALUES (?, ?, ?, NOW())`;
-        
-        pool.query(insertQuery, [userId, mensaje, enviado], (err, results) => {
-            if (err) {
-                console.error('Error al insertar el mensaje en la base de datos:', err.message);
-            } else {
-                console.log('Mensaje insertado correctamente en la base de datos:', results.insertId);
-            }
+        const response = await axios.post(url, data, {
+            params: {
+                access_token: APP_TOKEN_M, // Token con permisos de páginas
+            },
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
-    });
-}
 
-// Modificación en callSendAPI para manejar errores
-async function callSendAPI(messageData) {
-    try {
-        const response = await axios.post(
-            'https://graph.facebook.com/v21.0/me/messages',
-            messageData,
-            {
-                params: { access_token: APP_TOKEN_M },
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
-        console.log('Mensaje enviado exitosamente:', response.data);
-         // Eliminar el mensaje de la base de datos si el envío fue exitoso
-         const userId = messageData.recipient.id;
-         const mensaje = messageData.message.text;
-         
-         // Eliminar mensaje previamente insertado si ya existe
-         const deleteQuery = 'DELETE FROM Mensajes WHERE userId = ? AND mensaje = ?';
-         pool.query(deleteQuery, [userId, mensaje], (err, results) => {
-             if (err) {
-                 console.error('Error al eliminar el mensaje:', err.message);
-             } else {
-                 console.log('Mensaje eliminado correctamente de la base de datos.');
-             }
-         });
-        return; // Salir del loop si se envía correctamente
+        console.log('Respuesta publicada exitosamente:', response.data);
     } catch (error) {
         if (error.response) {
-                console.error('Error en la API de Messenger:', error.response.data);
-                const userId = messageData.recipient.id; // ID del destinatario
-                console.log(userId)
-                const mensaje = messageData.message.text; // Contenido del mensaje
-                insertarMensaje(userId, mensaje, false); // Guardar mensaje con enviado = false
+            console.error('Error al responder comentario:', error.response.data);
         } else {
-            console.error('Error al enviar el mensaje:', error.message);
+            console.error('Error al realizar la solicitud:', error.message);
         }
     }
 }
 
-// Función para revisar la base de datos y procesar mensajes pendientes
-async function revisarMensajesPendientes() {
-    console.log("Revisando mensajes pendientes...");
-    const query = `SELECT id, userId, mensaje FROM Mensajes WHERE enviado = false`;
+// Función para enviar mensajes directos a través de Messenger
+async function enviarMensaje(recipientId, mensaje) {
+    const url = `https://graph.facebook.com/v15.0/me/messages`;
 
-    pool.query(query, async (err, results) => {
-        if (err) {
-            console.error("Error al consultar la base de datos:", err.message);
-            return;
+    const data = {
+        recipient: { id: recipientId }, // ID del usuario de Messenger
+        message: { text: mensaje },    // Mensaje a enviar
+    };
+
+    try {
+        const response = await axios.post(url, data, {
+            params: {
+                access_token: APP_TOKEN_M, // Token con permisos de Messenger
+            },
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        console.log('Mensaje enviado exitosamente:', response.data);
+    } catch (error) {
+        if (error.response) {
+            console.error('Error al enviar mensaje:', error.response.data);
+        } else {
+            console.error('Error al realizar la solicitud:', error.message);
         }
-
-        if (results.length === 0) {
-            console.log("No hay mensajes pendientes.");
-            return;
-        }
-
-        console.log(`Se encontraron ${results.length} mensajes pendientes.`);
-
-        // Procesar cada mensaje
-        for (const mensaje of results) {
-            const { id, userId, mensaje: texto } = mensaje;
-            await reenviarMensaje(id, userId, texto);
-        }
-    });
+    }
 }
-
-// Configurar revisión cada hora
-setInterval(revisarMensajesPendientes, 60 * 1000);
-
