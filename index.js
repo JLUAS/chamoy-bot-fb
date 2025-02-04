@@ -59,6 +59,7 @@ app.use(bodyParser.json());
 // Variables de entorno
 const APP_TOKEN = process.env.APP_TOKEN;
 const APP_TOKEN_M = process.env.APP_TOKEN_M;
+const APP_TOKEN_IG = process.env.APP_TOKEN_IG;
 const { Configuration, OpenAIApi } = require('openai');
 
 // Inicializar OpenAI
@@ -90,8 +91,41 @@ app.get('/webhook', function (req, res) {
 // Webhook para recibir mensajes
 app.post('/webhook', async (req, res) => {
     const data = req.body;
-    if(data.object === 'instagram'){
-        console.log("Ig")
+    if (data.object === 'instagram') {
+        data.entry.forEach((entry) => {
+            entry.changes.forEach(async (change) => {
+                if (change.field === 'comments' && change.value.item === 'comment') {
+                    const commentData = change.value;
+                    const commentText = commentData.text;
+                    const mediaId = commentData.media.id;
+                    const commentId = commentData.comment_id;
+                    const username = commentData.username;
+
+                    console.log(`Comentario de Instagram: ${commentText} de @${username}`);
+
+                    try {
+                        const gptResponse = await openai.chat.completions.create({
+                            model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-number:AwFSZoJI',
+                            messages: [
+                                { 
+                                    role: 'system', 
+                                    content: "Mismo sistema que para Facebook..." 
+                                },
+                                { 
+                                    role: 'user', 
+                                    content: `Comentario: "${commentText}", Usuario: @${username}` 
+                                },
+                            ],
+                        });
+
+                        const respuesta = gptResponse.choices[0].message.content;
+                        await responderComentarioInstagram(mediaId, respuesta);
+                    } catch (err) {
+                        console.error('Error:', err.message);
+                    }
+                }
+            });
+        });
     }
     if (data.object === 'page') {
         data.entry.forEach((entry) => {
@@ -170,6 +204,30 @@ app.post('/IA', async(req,res) => {
       const botResponse = gptResponse.choices[0].message.content;
       res.send(botResponse)
 })
+
+async function responderComentarioInstagram(mediaId, mensaje) {
+    const url = 'https://graph.instagram.com/v21.0/me/messages';
+
+    const data = {
+        recipient: { id: recipientId }, // ID del usuario de Messenger
+        message: { text: mensaje },    // Mensaje a enviar
+    };
+
+    try {
+        const response = await axios.post(url, data,{
+            params: {
+                access_token: APP_TOKEN_IG, // Token con permisos de páginas
+            },
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        console.log('Respuesta publicada en Instagram:', response.data);
+    } catch (error) {
+        console.error('Error en Instagram:', error.response?.data || error.message);
+    }
+}   
 
 // Función para responder a un comentario en Facebook
 async function responderComentario(commentId, mensaje) {
