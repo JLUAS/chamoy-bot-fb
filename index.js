@@ -88,9 +88,9 @@ app.get('/webhook', function (req, res) {
 });
 
 // Webhook para recibir mensajes
-// Webhook para recibir mensajes
 app.post('/webhook', async (req, res) => {
     const data = req.body;
+    console.log(data.object)
     if (data.object === 'page') {
         data.entry.forEach((entry) => {
             if (entry.changes && Array.isArray(entry.changes)) {
@@ -102,7 +102,6 @@ app.post('/webhook', async (req, res) => {
 
                         console.log(`Comentario recibido: "${commentText}" de ${commenterName}`);
 
-                        // Generar una respuesta con OpenAI
                         try {
                             const gptResponse = await openai.chat.completions.create({
                                 model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-number:AwFSZoJI',
@@ -114,7 +113,6 @@ app.post('/webhook', async (req, res) => {
 
                             const respuesta = gptResponse.choices[0].message.content;
 
-                            // Responder al comentario en Facebook
                             await responderComentario(commentId, respuesta);
                         } catch (err) {
                             console.error('Error al procesar el comentario:', err.message);
@@ -122,11 +120,10 @@ app.post('/webhook', async (req, res) => {
                     }
                 });
             }
-            // Recorremos los eventos de mensajería
             if (entry.messaging) {
                 entry.messaging.forEach(async (event) => {
-                    const senderId = event.sender.id; // ID del usuario
-                    const message = event.message?.text; // Texto del mensaje
+                    const senderId = event.sender.id;
+                    const message = event.message?.text;
                     const id = process.env.PAGE_ID
                     if (message && senderId != id ) {
                         console.log(`Mensaje recibido: "${message}" de ${senderId}`);
