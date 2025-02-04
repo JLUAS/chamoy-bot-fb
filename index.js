@@ -203,7 +203,7 @@ app.post('/IA', async(req,res) => {
 })
 
 async function responderComentarioInstagram(mediaId, mensaje) {
-    const url = `https://graph.instagram.com/v21.0/${mediaId}/comments`;
+    const url = `https://graph.facebook.com/v21.0/${mediaId}/comments`;
 
     const data = {
         message: { text: mensaje },
