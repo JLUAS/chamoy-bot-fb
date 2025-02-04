@@ -107,7 +107,7 @@ app.post('/webhook', async (req, res) => {
                         // Generar una respuesta con OpenAI
                         try {
                             const gptResponse = await openai.chat.completions.create({
-                                model: 'ft:gpt-4o-mini-2024-07-18:personal::AbFUH44f',
+                                model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-number:AwFSZoJI',
                                 messages: [
                                     { role: 'system', content: 'Eres un asistente profesional que responde comentarios en redes sociales de manera efectiva.' },
                                     { role: 'user', content: `Comentario: "${commentText}", Nombre: "${commenterName}"` },
