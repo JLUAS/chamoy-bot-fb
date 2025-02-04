@@ -97,7 +97,7 @@ app.post('/webhook', async (req, res) => {
         data.entry.forEach((entry) => {
             if (entry.changes && Array.isArray(entry.changes)) {
                 entry.changes.forEach(async (change) => {
-                    if (change.field === 'feed' && change.value.item === 'comment' && change.value.from.name != "Chamoy Avispa" && change.value.message != "undefined") {
+                    if (change.field === 'feed' && change.value.item === 'comment' && change.value.from.name != "Chamoy Avispa" && change.value.message != undefined) {
                         const commentText = change.value.message;
                         const commentId = change.value.comment_id; // ID del comentario
                         const commenterName = change.value.from.name;
