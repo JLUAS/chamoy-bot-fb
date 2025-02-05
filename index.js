@@ -209,7 +209,7 @@ app.post('/IA', async(req,res) => {
 
 // Función para responder a un comentario en Instagram
 async function responderComentarioInstagram(commentId, mensaje) {
-    const url = `https://graph.facebook.com/v18.0/${commentId}/replies`;
+    const url = `https://graph.instagram.com/v18.0/${commentId}/replies`;
 
     try {
         const response = await axios.post(
