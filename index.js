@@ -116,7 +116,7 @@ app.post('/webhook', async (req, res) => {
                         });
 
                         const respuesta = gptResponse.choices[0].message.content;
-                        await responderComentarioInstagram(mediaId, respuesta);
+                        await responderComentarioInstagram(commentId, respuesta);
 
                     } catch (err) {
                         console.error('Error:', err.message);
