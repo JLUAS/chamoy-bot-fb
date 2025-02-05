@@ -116,7 +116,8 @@ app.post('/webhook', async (req, res) => {
                         });
 
                         const respuesta = gptResponse.choices[0].message.content;
-                        await responderComentarioInstagram(commentId, respuesta);
+                        await responderComentarioInstagram(mediaId, respuesta);
+
                     } catch (err) {
                         console.error('Error:', err.message);
                     }
@@ -202,28 +203,24 @@ app.post('/IA', async(req,res) => {
       res.send(botResponse)
 })
 
+// Mejora la función de respuesta a Instagram
 async function responderComentarioInstagram(mediaId, mensaje) {
-    const url = `https://graph.facebook.com/v21.0/${mediaId}/comments`;
-
-    const data = {
-        message: { text: mensaje },
-    };
+    const url = `https://graph.facebook.com/v18.0/${mediaId}/comments`;
 
     try {
-        const response = await axios.post(url, data,{
-            params: {
-                access_token: APP_TOKEN_IG,
-            },
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-
-        console.log('Respuesta publicada en Instagram:', response.data);
+        const response = await axios.post(url, 
+            { message: mensaje }, // Cuerpo correcto
+            {
+                params: {
+                    access_token: APP_TOKEN_IG
+                }
+            }
+        );
+        console.log('Respuesta exitosa:', response.data);
     } catch (error) {
         console.error('Error en Instagram:', error.response?.data || error.message);
     }
-}   
+}
 
 // Función para responder a un comentario en Facebook
 async function responderComentario(commentId, mensaje) {
