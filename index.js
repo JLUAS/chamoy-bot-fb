@@ -212,7 +212,7 @@ app.post('/IA', async(req,res) => {
 async function responderComentarioInstagram(mediaId, commentId, mensaje) {
     // Se utiliza el endpoint del medio para publicar un comentario
     const url = `https://graph.facebook.com/v18.0/${mediaId}/comments`;
-
+    console.log(process.env.APP_TOKEN_IG)
     try {
         const response = await axios.post(
             url,
