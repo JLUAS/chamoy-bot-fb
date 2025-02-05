@@ -97,6 +97,7 @@ app.post('/webhook', async (req, res) => {
             console.log(entry);
             entry.changes.forEach(async (change) => {
                 console.log(change);
+
                 if (change.field === 'comments' && change.value.from.username !== 'chamoyavispa') {
                     const commentData = change.value;
                     const commentText = commentData.text;
@@ -144,7 +145,7 @@ app.post('/webhook', async (req, res) => {
                             const gptResponse = await openai.chat.completions.create({
                                 model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-exp:AxgnMQhr',
                                 messages: [
-                                    { role: 'system', content:  "Eres el asistente oficial de la página de Facebook de Chamoy La Avispa. Responde de manera amigable y profesional a los comentarios de los clientes.  - Si preguntan por el número de contacto, proporciona el siguiente: 8131056733.  - Si preguntan cómo se usa el producto, dales el mismo número para obtener más información.  - No vendemos en tiendas departamentales. Si alguien pregunta dónde comprar, infórmales que pueden ver todos los distribuidores en este enlace: https://chamoyavispa.com/#/distribuidores.  - No proporciones direcciones exactas. Siempre redirige a la página de distribuidores.  - Si no sabes la respuesta a una pregunta, responde con un mensaje amable sugiriendo que contacten por WhatsApp al número proporcionado.  - Usa un tono respetuoso, cálido y breve en tus respuestas." },
+                                    { role: 'system', content:  "Eres el asistente oficial de la página de Facebook de Chamoy La Avispa. Responde de manera amigable y profesional a los comentarios de los clientes.  - Si preguntan por el número de contacto, proporciona el siguiente: 8131056733.  - Si preguntan cómo se usa el producto, dales el mismo número para obtener más información.  - No vendemos en tiendas departamentales. Si alguien pregunta dónde comprar, infórmales que pueden ver todos los distribuidores en este enlace: https://chamoyavispa.com/#/distribuidores.  - No proporciones direcciones exactas. Siempre redirige a la página de distribuidores.  - Si no sabes la respuesta a una pregunta, responde con un mensaje amable sugiriendo que contacten por WhatsApp al número proporcionado.  - Usa un tono respetuoso, cálido y breve en tus respuestas. - No sirve para paletas o nieve de leche." },
                                     { role: 'user', content: `Comentario: "${commentText}", Nombre: "${commenterName}"` },
                                 ],
                             });
@@ -171,7 +172,7 @@ app.post('/webhook', async (req, res) => {
                             const gptResponse = await openai.chat.completions.create({
                                 model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-exp:AxgnMQhr',
                                 messages: [
-                                    { role: 'system', content:  "Eres el asistente oficial de la página de Facebook de Chamoy La Avispa. Responde de manera amigable y profesional a los comentarios de los clientes.  - Si preguntan por el número de contacto, proporciona el siguiente: 8131056733.  - Si preguntan cómo se usa el producto, dales el mismo número para obtener más información.  - No vendemos en tiendas departamentales. Si alguien pregunta dónde comprar, infórmales que pueden ver todos los distribuidores en este enlace: https://chamoyavispa.com/#/distribuidores.  - No proporciones direcciones exactas. Siempre redirige a la página de distribuidores.  - Si no sabes la respuesta a una pregunta, responde con un mensaje amable sugiriendo que contacten por WhatsApp al número proporcionado.  - Usa un tono respetuoso, cálido y breve en tus respuestas." },
+                                    { role: 'system', content:  "Eres el asistente oficial de la página de Facebook de Chamoy La Avispa. Responde de manera amigable y profesional a los comentarios de los clientes.  - Si preguntan por el número de contacto, proporciona el siguiente: 8131056733.  - Si preguntan cómo se usa el producto, dales el mismo número para obtener más información.  - No vendemos en tiendas departamentales. Si alguien pregunta dónde comprar, infórmales que pueden ver todos los distribuidores en este enlace: https://chamoyavispa.com/#/distribuidores.  - No proporciones direcciones exactas. Siempre redirige a la página de distribuidores.  - Si no sabes la respuesta a una pregunta, responde con un mensaje amable sugiriendo que contacten por WhatsApp al número proporcionado.  - Usa un tono respetuoso, cálido y breve en tus respuestas. - No sirve para paletas o nieve de leche." },
                                     { role: 'user', content: `Mensaje: "${message}"` },
                                 ],
                             });
@@ -209,7 +210,7 @@ app.post('/IA', async(req,res) => {
 
 // Función para responder a un comentario en Instagram
 async function responderComentarioInstagram(commentId, mensaje) {
-    const url = `https://graph.instagram.com/v18.0/${commentId}/replies`;
+    const url = `https://graph.facebook.com/v18.0/${commentId}/replies`;
 
     try {
         const response = await axios.post(
