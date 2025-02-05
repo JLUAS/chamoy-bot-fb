@@ -97,12 +97,10 @@ app.post('/webhook', async (req, res) => {
             console.log(entry);
             entry.changes.forEach(async (change) => {
                 console.log(change);
-                // Procesamos únicamente comentarios que no sean del usuario de prueba
                 if (change.field === 'comments' && change.value.from.username !== 'chamoyavispa') {
                     const commentData = change.value;
                     const commentText = commentData.text;
-                    const mediaId = commentData.media.id;  // ID del medio (post)
-                    const commentId = commentData.id;        // ID del comentario
+                    const commentId = commentData.id;  // Id del comentario
                     const username = commentData.from.username;
 
                     console.log(`Comentario de Instagram: ${commentText} de @${username}`);
@@ -112,21 +110,22 @@ app.post('/webhook', async (req, res) => {
                             model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-exp:AxgnMQhr',
                             messages: [
                                 {
-                                  role: 'system',
-                                  content: "Eres el asistente oficial de la página de Facebook de Chamoy La Avispa. Responde de manera amigable y profesional a los comentarios de los clientes. - Si preguntan por el número de contacto, proporciona el siguiente: 8131056733. - Si preguntan cómo se usa el producto, dales el mismo número para obtener más información. - No vendemos en tiendas departamentales. Si alguien pregunta dónde comprar, infórmales que pueden ver todos los distribuidores en este enlace: https://chamoyavispa.com/#/distribuidores. - No proporciones direcciones exactas. Siempre redirige a la página de distribuidores. - Si no sabes la respuesta a una pregunta, responde con un mensaje amable sugiriendo que contacten por WhatsApp al número proporcionado. - Usa un tono respetuoso, cálido y breve en tus respuestas."
+                                    role: 'system',
+                                    content: "Eres el asistente oficial de la página de Facebook de Chamoy La Avispa. Responde de manera amigable y profesional a los comentarios de los clientes. - Si preguntan por el número de contacto, proporciona el siguiente: 8131056733. - Si preguntan cómo se usa el producto, dales el mismo número para obtener más información. - No vendemos en tiendas departamentales. Si alguien pregunta dónde comprar, infórmales que pueden ver todos los distribuidores en este enlace: https://chamoyavispa.com/#/distribuidores. - No proporciones direcciones exactas. Siempre redirige a la página de distribuidores. - Si no sabes la respuesta a una pregunta, responde con un mensaje amable sugiriendo que contacten por WhatsApp al número proporcionado. - Usa un tono respetuoso, cálido y breve en tus respuestas."
                                 },
                                 { role: 'user', content: `Comentario: "${commentText}", Usuario: @${username}` },
                             ],
                         });
 
                         const respuesta = gptResponse.choices[0].message.content;
-                        // Se pasa tanto mediaId como commentId a la función de respuesta
-                        await responderComentarioInstagram(mediaId, commentId, respuesta);
+                        // Llamamos a la función usando el id del comentario
+                        await responderComentarioInstagram(commentId, respuesta);
 
                     } catch (err) {
                         console.error('Error:', err.message);
                     }
                 }
+
             });
         });
     }
@@ -209,16 +208,14 @@ app.post('/IA', async(req,res) => {
 })
 
 // Función para responder a un comentario en Instagram
-async function responderComentarioInstagram(mediaId, commentId, mensaje) {
-    // Se utiliza el endpoint del medio para publicar un comentario
-    const url = `https://graph.facebook.com/v18.0/${mediaId}/comments`;
-    console.log(process.env.APP_TOKEN_IG)
+async function responderComentarioInstagram(commentId, mensaje) {
+    const url = `https://graph.facebook.com/v18.0/${commentId}/replies`;
+
     try {
         const response = await axios.post(
             url,
             { 
-                message: mensaje, 
-                reply_to_comment_id: commentId  // Indica que es una respuesta a ese comentario
+                message: mensaje  // Solo se requiere el mensaje
             },
             {
                 params: {
@@ -231,6 +228,7 @@ async function responderComentarioInstagram(mediaId, commentId, mensaje) {
         console.error('Error en Instagram:', error.response?.data || error.message);
     }
 }
+
 
 
 // Función para responder a un comentario en Facebook
