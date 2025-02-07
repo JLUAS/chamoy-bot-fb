@@ -197,7 +197,7 @@ app.post('/webhook', async (req, res) => {
 app.post('/IA', async(req,res) => {
     const{userSpeech} = req.body
     const gptResponse = await openai.chat.completions.create({
-        model: "ft:gpt-4o-mini-2024-07-18:personal::AbFUH44f",
+        model: "ft:gpt-3.5-turbo-1106:personal:chamoy-exp-2:AyRkJUmI",
         messages: [
           { role: "system", content: "Eres un asistente del banco Getnet especializado en terminales de pago." },
           { role: "user", content: userSpeech },
