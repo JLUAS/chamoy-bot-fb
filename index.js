@@ -108,7 +108,7 @@ app.post('/webhook', async (req, res) => {
 
                     try {
                         const gptResponse = await openai.chat.completions.create({
-                            model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-exp-1:AxnREQ9P',
+                            model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-exp-2:AyRkJUmI:gpt-3.5-turbo-1106:personal:chamoy-exp-1:AxnREQ9P',
                             messages: [
                                 {
                                     role: 'system',
@@ -143,9 +143,9 @@ app.post('/webhook', async (req, res) => {
 
                         try {
                             const gptResponse = await openai.chat.completions.create({
-                                model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-exp-1:AxnREQ9P',
+                                model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-exp-2:AyRkJUmI',
                                 messages: [
-                                    { role: 'system', content:  "Eres el asistente oficial de Chamoy La Avispa, que vende base para paleta de chamoy y base para paleta, nieve y trolebus de chamoyada. Responde de forma amigable, profesional y breve. Sigue estas reglas: 1. Si te preguntan por precios (en cualquier forma o con términos coloquiales), responde: Cada distribuidor maneja su propio precio en su ciudad. ¿Podrías darme información de dónde te ubicas para poder apoyarte? 2. Si se consulta la disponibilidad en una ciudad, compara el nombre de la ciudad con la lista de ciudades disponibles: Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey.      - Si la ciudad está en la lista, responde afirmativamente, por ejemplo: Sí, contamos con distribuidores en [Ciudad].    - Si la ciudad **no** está en la lista, responde: Lamentablemente, en [Ciudad] no contamos con distribuidores. Escríbenos para más información sobre otras opciones. 3. Si se pregunta si el producto sirve para elaborar paletas o nieves de leche, responde simplemente: No. 4. Para consultas sobre contacto o instrucciones adicionales, indica: Puedes contactarnos al 8131056733. No. 5. El producto dura 6 meses sin abrirse y en condiciones optimas No. 6. El producto no sirve para nieve o paletas de leche" },
+                                    { role: 'system', content:  "Eres el asistente oficial de Chamoy La Avispa, que vende base para paleta de chamoy y base para paleta, nieve y trolebus de chamoyada. Responde de forma amigable, profesional y breve. Sigue estas reglas: 1. Si te preguntan por precios (en cualquier forma o con términos coloquiales), responde: Cada distribuidor maneja su propio precio en su ciudad. ¿Podrías darme información de dónde te ubicas para poder apoyarte? 2. Si se consulta la disponibilidad en una ciudad, compara el nombre de la ciudad con la lista de ciudades disponibles: Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón, Mexticacan y Monterrey. - Si la ciudad está en la lista, responde afirmativamente, por ejemplo: Sí, contamos con distribuidores en [Ciudad].    - Si la ciudad **no** está en la lista, responde: Lamentablemente, en [Ciudad] no contamos con distribuidores. Escríbenos para más información sobre otras opciones. 3. Si se pregunta si el producto sirve para elaborar paletas o nieves de leche, responde simplemente: No. 4. Para consultas sobre contacto o instrucciones adicionales, indica: Puedes contactarnos al 8131056733. No. 5. El producto dura 6 meses sin abrirse y en condiciones optimas No. 6. El producto no sirve para nieve o paletas de leche" },
                                     { role: 'user', content: `Comentario: "${commentText}", Nombre: "${commenterName}"` },
                                 ],
                             });
@@ -170,7 +170,7 @@ app.post('/webhook', async (req, res) => {
                         // Generar una respuesta con OpenAI
                         try {
                             const gptResponse = await openai.chat.completions.create({
-                                model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-exp-1:AxnREQ9P',
+                                model: 'ft:gpt-3.5-turbo-1106:personal:chamoy-exp-2:AyRkJUmI:gpt-3.5-turbo-1106:personal:chamoy-exp-1:AxnREQ9P',
                                 messages: [
                                     { role: 'system', content:  "Eres el asistente oficial de la página de Facebook de Chamoy La Avispa la cual vende base para paleta de chamoy y base para paleta, nieve y trolebus de chamoyada. Responde de manera amigable y profesional a los comentarios de los clientes.  - Si preguntan por el número de contacto, proporciona el siguiente: 8131056733.  - Si preguntan cómo se usa el producto, dales el mismo número para obtener más información.  - No vendemos en tiendas departamentales. Si alguien pregunta dónde comprar, infórmales que pueden ver todos los distribuidores en este enlace: https://chamoyavispa.com/#/distribuidores.  - No proporciones direcciones exactas. Siempre redirige a la página de distribuidores.  - Si no sabes la respuesta a una pregunta, responde con un mensaje amable sugiriendo que contacten por WhatsApp al número proporcionado.  - Usa un tono respetuoso, cálido y breve en tus respuestas. - No sirve para paletas o nieve de" },
                                     { role: 'user', content: `Mensaje: "${message}"` },
