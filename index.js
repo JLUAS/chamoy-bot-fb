@@ -487,26 +487,24 @@ const baseQAWithEmbeddings = [];
 // Función para obtener el embedding de un texto (asegúrate de que tu versión de la API sea compatible)
 async function obtenerEmbedding(texto) {
     try {
-        const response = await openai.embeddings.create({
-            model: "text-embedding-ada-002",
-            input: texto,
-      });
-      if (
-        response &&
-        response.data &&
-        response.data.data &&
-        Array.isArray(response.data.data) &&
-        response.data.data.length > 0
-      ) {
-        return response.data.data[0].embedding;
-      } else {
-        console.error("Formato de respuesta inesperado:", response);
-        throw new Error("Formato de respuesta inesperado");
+        const response = await openai.createEmbedding({
+          model: "text-embedding-ada-002",
+          input: texto,
+        });
+        
+        // Si response.data.data existe, úsalo; de lo contrario, usa response.data
+        const result = response.data.data ? response.data.data : response.data;
+        
+        if (result && Array.isArray(result) && result.length > 0) {
+          return result[0].embedding;
+        } else {
+          console.error("Formato de respuesta inesperado:", result);
+          throw new Error("Formato de respuesta inesperado");
+        }
+      } catch (error) {
+        console.error("Error al obtener embedding:", error.response ? error.response.data : error.message);
+        throw error;
       }
-    } catch (error) {
-      console.error("Error al obtener embedding:", error.response ? error.response.data : error.message);
-      throw error;
-    }
   }
   
   async function precomputarEmbeddings() {
