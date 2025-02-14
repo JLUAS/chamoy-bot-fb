@@ -84,8 +84,6 @@ app.get('/webhook', (req, res) => {
 
 // Nuestra "base de datos" de Q&A (formato: mensajes con role "user" y "assistant")
 const baseQA = [
-    {"messages": [{"role": "user", "content": "en que parte de puebla"}, {"role": "assistant", "content": "Hola, soy la avispa. Buen día, gracias por su interés. Te invito a conocer mas información en nuestro sitio web https://chamoyavispa.com/#/distribuidores"}]},
-    {"messages": [{"role": "user", "content": "en que parte de puebla"}, {"role": "assistant", "content": "Hola, soy la avispa. Buen día, gracias por su interés. Te invito a conocer mas información en nuestro sitio web https://chamoyavispa.com/#/distribuidores"}]},
     {"messages": [{"role": "user", "content": "¿Cuál es el costo?"}, {"role": "assistant", "content": "Hola, soy la avispa. Buen día, gracias por su interés. Cada distribuidor maneja su propio precio en su ciudad. ¿Podrías darme información de dónde te ubicas para poder apoyarte?"}]},
     {"messages": [{"role": "user", "content": "¿Cuál es el precio del bote?"}, {"role": "assistant", "content": "Hola, soy la avispa. Buen día, gracias por su interés. Cada distribuidor maneja su propio precio en su ciudad. ¿Podrías darme información de dónde te ubicas para poder apoyarte?"}]},
     {"messages": [{"role": "user", "content": "¿En qué ciudades tienen distribuidores?"}, {"role": "assistant", "content": "Hola, soy la avispa. Contamos con distribuidores en Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey."}]},
@@ -607,7 +605,7 @@ async function obtenerEmbedding(texto) {
     // Función interna para decidir el flujo según el mensaje recibido
     async function procesarMensaje(texto, commentId, responderFn) {
       // Si el mensaje parece ser una consulta sobre ubicación/distribución
-      if (/ubicad|distribu|dónde|en que parte/i.test(texto)) {
+      if (/ubicad|distribu|donde|en que parte/i.test(texto)) {
         const respuestaUbicacion = responderUbicacion(texto);
         await responderFn(commentId, respuestaUbicacion);
       } else {
