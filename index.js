@@ -487,21 +487,20 @@ const baseQAWithEmbeddings = [];
  */
 async function obtenerEmbedding(texto) {
     try {
-      // Usar createEmbedding según la documentación actual
-      const response = await openai.createEmbedding({
+      const response = await openai.embeddings.create({
         model: "text-embedding-ada-002",
         input: texto,
       });
+      // Dependiendo de la versión, es posible que la respuesta esté en response.data[0] en lugar de response.data.data[0]
       if (
         response &&
         response.data &&
-        response.data.data &&
-        Array.isArray(response.data.data) &&
-        response.data.data.length > 0
+        Array.isArray(response.data) &&
+        response.data.length > 0
       ) {
-        return response.data.data[0].embedding;
+        return response.data[0].embedding;
       } else {
-        console.error("La respuesta de la API no tiene el formato esperado:", response);
+        console.error("Formato de respuesta inesperado:", response);
         throw new Error("Formato de respuesta inesperado");
       }
     } catch (error) {
@@ -509,6 +508,7 @@ async function obtenerEmbedding(texto) {
       throw error;
     }
   }
+  
 
 /**
  * Función para precalcular los embeddings de las preguntas base.
