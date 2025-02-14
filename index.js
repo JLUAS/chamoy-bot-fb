@@ -84,6 +84,8 @@ app.get('/webhook', (req, res) => {
 
 // Nuestra "base de datos" de Q&A (formato: mensajes con role "user" y "assistant")
 const baseQA = [
+    {"messages": [{"role": "user", "content": "en que parte de puebla"}, {"role": "assistant", "content": "Hola, soy la avispa. Buen día, gracias por su interés. Te invito a conocer mas información en nuestro sitio web https://chamoyavispa.com/#/distribuidores"}]},
+    {"messages": [{"role": "user", "content": "en que parte de puebla"}, {"role": "assistant", "content": "Hola, soy la avispa. Buen día, gracias por su interés. Te invito a conocer mas información en nuestro sitio web https://chamoyavispa.com/#/distribuidores"}]},
     {"messages": [{"role": "user", "content": "¿Cuál es el costo?"}, {"role": "assistant", "content": "Hola, soy la avispa. Buen día, gracias por su interés. Cada distribuidor maneja su propio precio en su ciudad. ¿Podrías darme información de dónde te ubicas para poder apoyarte?"}]},
     {"messages": [{"role": "user", "content": "¿Cuál es el precio del bote?"}, {"role": "assistant", "content": "Hola, soy la avispa. Buen día, gracias por su interés. Cada distribuidor maneja su propio precio en su ciudad. ¿Podrías darme información de dónde te ubicas para poder apoyarte?"}]},
     {"messages": [{"role": "user", "content": "¿En qué ciudades tienen distribuidores?"}, {"role": "assistant", "content": "Hola, soy la avispa. Contamos con distribuidores en Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey."}]},
@@ -482,23 +484,21 @@ const baseQA = [
 // Array para almacenar las Q&A con sus embeddings precalculados
 const baseQAWithEmbeddings = [];
 
-/**
- * Función para obtener el embedding de un texto usando el modelo "text-embedding-ada-002".
- */
+// Función para obtener el embedding de un texto (asegúrate de que tu versión de la API sea compatible)
 async function obtenerEmbedding(texto) {
     try {
-      const response = await openai.embeddings.create({
+      const response = await openai.createEmbedding({
         model: "text-embedding-ada-002",
         input: texto,
       });
-      // Dependiendo de la versión, es posible que la respuesta esté en response.data[0] en lugar de response.data.data[0]
       if (
         response &&
         response.data &&
-        Array.isArray(response.data) &&
-        response.data.length > 0
+        response.data.data &&
+        Array.isArray(response.data.data) &&
+        response.data.data.length > 0
       ) {
-        return response.data[0].embedding;
+        return response.data.data[0].embedding;
       } else {
         console.error("Formato de respuesta inesperado:", response);
         throw new Error("Formato de respuesta inesperado");
@@ -509,69 +509,47 @@ async function obtenerEmbedding(texto) {
     }
   }
   
-
-/**
- * Función para precalcular los embeddings de las preguntas base.
- * Se utiliza el contenido del mensaje con role "user" en cada Q&A.
- */
-async function precomputarEmbeddings() {
-  for (const qa of baseQA) {
-    const pregunta = qa.messages.find(msg => msg.role === "user").content;
-    try {
-      const embedding = await obtenerEmbedding(pregunta);
-      baseQAWithEmbeddings.push({ qa, embedding });
-    } catch (error) {
-      console.error("Error al precalcular embedding para:", pregunta, error);
+  async function precomputarEmbeddings() {
+    for (const qa of baseQA) {
+      const pregunta = qa.messages.find(msg => msg.role === "user").content;
+      try {
+        const embedding = await obtenerEmbedding(pregunta);
+        baseQAWithEmbeddings.push({ qa, embedding });
+      } catch (error) {
+        console.error("Error al precalcular embedding para:", pregunta, error);
+      }
     }
+    console.log("Embeddings de Q&A base precalculados.");
   }
-  console.log("Embeddings de Q&A base precalculados.");
-}
-// Precalcular embeddings al iniciar el servidor
-precomputarEmbeddings().catch(err => console.error(err));
-
-/**
- * Función para calcular la similitud coseno entre dos vectores.
- */
-function cosineSimilarity(vecA, vecB) {
-  const dotProduct = vecA.reduce((acc, val, i) => acc + val * vecB[i], 0);
-  const magnitudeA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
-  const magnitudeB = Math.sqrt(vecB.reduce((acc, val) => acc + val * val, 0));
-  if (magnitudeA === 0 || magnitudeB === 0) return 0;
-  return dotProduct / (magnitudeA * magnitudeB);
-}
-
-/**
- * Función para buscar la Q&A cuya pregunta (role "user") sea más similar
- * a la consulta recibida.
- */
-async function buscarQASimilar(query) {
-  const queryEmbedding = await obtenerEmbedding(query);
-  let maxSimilarity = -1;
-  let mejorQA = null;
-  for (const item of baseQAWithEmbeddings) {
-    const similarity = cosineSimilarity(queryEmbedding, item.embedding);
-    if (similarity > maxSimilarity) {
-      maxSimilarity = similarity;
-      mejorQA = item.qa;
+  precomputarEmbeddings().catch(err => console.error(err));
+  
+  function cosineSimilarity(vecA, vecB) {
+    const dotProduct = vecA.reduce((acc, val, i) => acc + val * vecB[i], 0);
+    const magnitudeA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
+    const magnitudeB = Math.sqrt(vecB.reduce((acc, val) => acc + val * val, 0));
+    if (magnitudeA === 0 || magnitudeB === 0) return 0;
+    return dotProduct / (magnitudeA * magnitudeB);
+  }
+  
+  async function buscarQASimilar(query) {
+    const queryEmbedding = await obtenerEmbedding(query);
+    let maxSimilarity = -1;
+    let mejorQA = null;
+    for (const item of baseQAWithEmbeddings) {
+      const similarity = cosineSimilarity(queryEmbedding, item.embedding);
+      if (similarity > maxSimilarity) {
+        maxSimilarity = similarity;
+        mejorQA = item.qa;
+      }
     }
+    return { mejorQA, maxSimilarity };
   }
-  return { mejorQA, maxSimilarity };
-}
-
-/* ======================================
-   INTEGRACIÓN EN EL WEBHOOK (POST)
-   ====================================== */
-
-app.post('/webhook', async (req, res) => {
-  const data = req.body;
-
-  // Función interna para procesar una pregunta y obtener respuesta basada en Q&A
+  
   async function procesarPregunta(textoPregunta) {
     try {
       const { mejorQA, maxSimilarity } = await buscarQASimilar(textoPregunta);
-      const umbral = 0.8; // Ajusta el umbral según pruebas
+      const umbral = 0.8; // Ajusta según pruebas
       if (maxSimilarity >= umbral && mejorQA) {
-        // Retornamos la respuesta asociada (mensaje con role "assistant")
         return mejorQA.messages.find(m => m.role === "assistant").content;
       } else {
         return "Lo siento, no pude encontrar una coincidencia exacta. ¿Podrías reformular tu pregunta?";
@@ -581,124 +559,179 @@ app.post('/webhook', async (req, res) => {
       return "Ocurrió un error al procesar tu consulta.";
     }
   }
-
-  // Procesar eventos de Instagram
-  if (data.object === 'instagram') {
-    data.entry.forEach((entry) => {
-      entry.changes.forEach(async (change) => {
-        if (
-          change.field === 'comments' &&
-          change.value.from.username !== 'chamoyavispa'
-        ) {
-          const commentText = change.value.text;
-          const commentId = change.value.id; // ID del comentario
-          console.log(`Comentario de Instagram recibido: "${commentText}"`);
-
-          const respuesta = await procesarPregunta(commentText);
-          // Llamamos a la función para responder en Instagram
-          await responderComentarioInstagram(commentId, respuesta);
-        }
-      });
-    });
+  
+  /* ======================================
+     FUNCIONALIDAD PARA RESPONDER CONSULTAS SOBRE DISTRIBUCIÓN
+     ====================================== */
+  
+  // Lista de ciudades con distribuidores
+  const ciudadesDistribuidores = [
+    "Acapulco",
+    "Ciudad de México",
+    "Toluca",
+    "Guadalajara",
+    "Puebla",
+    "Tijuana",
+    "Veracruz",
+    "Oaxaca",
+    "Torreón",
+    "Monterrey"
+  ];
+  
+  // Función para normalizar el texto (convertir a minúsculas, quitar acentos, etc.)
+  function normalizarTexto(texto) {
+    return texto.toLowerCase();
   }
-
-  // Procesar eventos de página de Facebook
-  if (data.object === 'page') {
-    data.entry.forEach((entry) => {
-      // Procesar comentarios en el feed
-      if (entry.changes && Array.isArray(entry.changes)) {
+  
+  function responderUbicacion(mensaje) {
+    const mensajeNormalizado = normalizarTexto(mensaje);
+    let ciudadEncontrada = null;
+    for (const ciudad of ciudadesDistribuidores) {
+      if (mensajeNormalizado.includes(ciudad.toLowerCase())) {
+        ciudadEncontrada = ciudad;
+        break;
+      }
+    }
+    if (ciudadEncontrada) {
+      return `Sí, tenemos distribuidores en ${ciudadEncontrada}. ¿Te gustaría conocer más detalles?`;
+    } else {
+      return `Actualmente contamos con distribución en: ${ciudadesDistribuidores.join(', ')}. Si tu ciudad no aparece, por favor contáctanos para explorar otras opciones.`;
+    }
+  }
+  
+  /* ======================================
+     INTEGRACIÓN EN EL WEBHOOK (POST)
+     ====================================== */
+  
+  app.post('/webhook', async (req, res) => {
+    const data = req.body;
+  
+    // Función interna para decidir el flujo según el mensaje recibido
+    async function procesarMensaje(texto, commentId, responderFn) {
+      // Si el mensaje parece ser una consulta sobre ubicación/distribución
+      if (/ubicad|distribu|dónde|en que parte/i.test(texto)) {
+        const respuestaUbicacion = responderUbicacion(texto);
+        await responderFn(commentId, respuestaUbicacion);
+      } else {
+        // Procesa el mensaje normalmente (por ejemplo, con búsqueda semántica)
+        const respuesta = await procesarPregunta(texto);
+        await responderFn(commentId, respuesta);
+      }
+    }
+  
+    // Procesar eventos de Instagram
+    if (data.object === 'instagram') {
+      data.entry.forEach((entry) => {
         entry.changes.forEach(async (change) => {
           if (
-            change.field === 'feed' &&
-            change.value.item === 'comment' &&
-            change.value.from.name !== "Chamoy Avispa" &&
-            change.value.message !== undefined
+            change.field === 'comments' &&
+            change.value.from.username !== 'chamoyavispa'
           ) {
-            const commentText = change.value.message;
-            const commentId = change.value.comment_id;
-            console.log(`Comentario en Facebook recibido: "${commentText}"`);
-
-            const respuesta = await procesarPregunta(commentText);
-            // Llamamos a la función para responder en Facebook
-            await responderComentario(commentId, respuesta);
+            const commentText = change.value.text;
+            const commentId = change.value.id;
+            console.log(`Comentario de Instagram recibido: "${commentText}"`);
+            await procesarMensaje(commentText, commentId, responderComentarioInstagram);
           }
         });
-      }
-
-      // Procesar mensajes directos (Messenger)
-      if (entry.messaging) {
-        entry.messaging.forEach(async (event) => {
-          const senderId = event.sender.id;
-          const message = event.message?.text;
-          if (message && senderId !== process.env.PAGE_ID) {
-            console.log(`Mensaje de Messenger recibido: "${message}"`);
-            const respuesta = await procesarPregunta(message);
-            await enviarMensaje(senderId, respuesta);
-          }
-        });
-      }
-    });
+      });
+    }
+  
+    // Procesar eventos de página de Facebook
+    if (data.object === 'page') {
+      data.entry.forEach((entry) => {
+        if (entry.changes && Array.isArray(entry.changes)) {
+          entry.changes.forEach(async (change) => {
+            if (
+              change.field === 'feed' &&
+              change.value.item === 'comment' &&
+              change.value.from.name !== "Chamoy Avispa" &&
+              change.value.message !== undefined
+            ) {
+              const commentText = change.value.message;
+              const commentId = change.value.comment_id;
+              console.log(`Comentario en Facebook recibido: "${commentText}"`);
+              await procesarMensaje(commentText, commentId, responderComentario);
+            }
+          });
+        }
+  
+        // Procesar mensajes directos (Messenger)
+        if (entry.messaging) {
+          entry.messaging.forEach(async (event) => {
+            const senderId = event.sender.id;
+            const message = event.message?.text;
+            if (message && senderId !== process.env.PAGE_ID) {
+              console.log(`Mensaje de Messenger recibido: "${message}"`);
+              // Aquí, en lugar de usar responderComentario, usamos enviarMensaje para mensajes directos
+              if (/ubicad|distribu|dónde|en que parte/i.test(message)) {
+                const respuestaUbicacion = responderUbicacion(message);
+                await enviarMensaje(senderId, respuestaUbicacion);
+              } else {
+                const respuesta = await procesarPregunta(message);
+                await enviarMensaje(senderId, respuesta);
+              }
+            }
+          });
+        }
+      });
+    }
+  
+    res.sendStatus(200);
+  });
+  
+  /* ======================================
+     FUNCIONES EXISTENTES PARA RESPONDER
+     ====================================== */
+  
+  async function responderComentarioInstagram(commentId, mensaje) {
+    const url = `https://graph.facebook.com/v18.0/${commentId}/replies`;
+    try {
+      const response = await axios.post(
+        url,
+        { message: mensaje },
+        {
+          params: { access_token: APP_TOKEN_IG }
+        }
+      );
+      console.log('Respuesta en Instagram enviada:', response.data);
+    } catch (error) {
+      console.error('Error en Instagram:', error.response?.data || error.message);
+    }
   }
-
-  res.sendStatus(200);
-});
-
-/* ======================================
-   FUNCIONES EXISTENTES PARA RESPONDER
-   ====================================== */
-
-// Función para responder a un comentario en Instagram
-async function responderComentarioInstagram(commentId, mensaje) {
-  const url = `https://graph.facebook.com/v18.0/${commentId}/replies`;
-  try {
-    const response = await axios.post(
-      url,
-      { message: mensaje },
-      {
-        params: { access_token: APP_TOKEN_IG }
-      }
-    );
-    console.log('Respuesta en Instagram enviada:', response.data);
-  } catch (error) {
-    console.error('Error en Instagram:', error.response?.data || error.message);
+  
+  async function responderComentario(commentId, mensaje) {
+    const url = `https://graph.facebook.com/v15.0/${commentId}/comments`;
+    try {
+      const response = await axios.post(
+        url,
+        { message: mensaje },
+        {
+          params: { access_token: APP_TOKEN_M },
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+      console.log('Respuesta en Facebook enviada:', response.data);
+    } catch (error) {
+      console.error('Error al responder comentario:', error.response?.data || error.message);
+    }
   }
-}
-
-// Función para responder a un comentario en Facebook
-async function responderComentario(commentId, mensaje) {
-  const url = `https://graph.facebook.com/v15.0/${commentId}/comments`;
-  try {
-    const response = await axios.post(
-      url,
-      { message: mensaje },
-      {
-        params: { access_token: APP_TOKEN_M },
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-    console.log('Respuesta en Facebook enviada:', response.data);
-  } catch (error) {
-    console.error('Error al responder comentario:', error.response?.data || error.message);
+  
+  async function enviarMensaje(recipientId, mensaje) {
+    const url = `https://graph.facebook.com/v15.0/me/messages`;
+    try {
+      const response = await axios.post(
+        url,
+        {
+          recipient: { id: recipientId },
+          message: { text: mensaje }
+        },
+        {
+          params: { access_token: APP_TOKEN_M },
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+      console.log('Mensaje de Messenger enviado:', response.data);
+    } catch (error) {
+      console.error('Error al enviar mensaje:', error.response?.data || error.message);
+    }
   }
-}
-
-// Función para enviar mensajes directos en Messenger
-async function enviarMensaje(recipientId, mensaje) {
-  const url = `https://graph.facebook.com/v15.0/me/messages`;
-  try {
-    const response = await axios.post(
-      url,
-      {
-        recipient: { id: recipientId },
-        message: { text: mensaje }
-      },
-      {
-        params: { access_token: APP_TOKEN_M },
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-    console.log('Mensaje de Messenger enviado:', response.data);
-  } catch (error) {
-    console.error('Error al enviar mensaje:', error.response?.data || error.message);
-  }
-}
