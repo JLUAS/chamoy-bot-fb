@@ -486,17 +486,29 @@ const baseQAWithEmbeddings = [];
  * Función para obtener el embedding de un texto usando el modelo "text-embedding-ada-002".
  */
 async function obtenerEmbedding(texto) {
-  try {
-    const response = await openai.embeddings.create({
-      model: "text-embedding-ada-002",
-      input: texto,
-    });
-    return response.data.data[0].embedding;
-  } catch (error) {
-    console.error("Error al obtener embedding:", error);
-    throw error;
+    try {
+      // Usar createEmbedding según la documentación actual
+      const response = await openai.createEmbedding({
+        model: "text-embedding-ada-002",
+        input: texto,
+      });
+      if (
+        response &&
+        response.data &&
+        response.data.data &&
+        Array.isArray(response.data.data) &&
+        response.data.data.length > 0
+      ) {
+        return response.data.data[0].embedding;
+      } else {
+        console.error("La respuesta de la API no tiene el formato esperado:", response);
+        throw new Error("Formato de respuesta inesperado");
+      }
+    } catch (error) {
+      console.error("Error al obtener embedding:", error.response ? error.response.data : error.message);
+      throw error;
+    }
   }
-}
 
 /**
  * Función para precalcular los embeddings de las preguntas base.
