@@ -563,8 +563,34 @@ async function obtenerEmbedding(texto) {
   const distributorsLink = "https://chamoyavispa.com/#/distribuidores";
   const phoneNumber = "8131056733";
   
+  const language = require('@google-cloud/language');
+  // Crea un cliente (asegúrate de tener configuradas las credenciales de Google Cloud)
+  const client = new language.LanguageServiceClient();
+  
+  /**
+   * Función para analizar el texto y extraer entidades de tipo LOCATION.
+   * @param {string} texto - El mensaje a analizar.
+   * @returns {Promise<Array<string>>} - Un arreglo con las ubicaciones detectadas.
+   */
+  async function detectarUbicaciones(texto) {
+    const document = {
+      content: texto,
+      type: 'PLAIN_TEXT',
+    };
+    try {
+      const [result] = await client.analyzeEntities({ document });
+      // Filtra las entidades de tipo LOCATION
+      const ubicaciones = result.entities
+        .filter(entity => entity.type === 'LOCATION')
+        .map(entity => entity.name);
+      return ubicaciones;
+    } catch (error) {
+      console.error("Error al analizar el texto con Google NL:", error);
+      return [];
+    }
+  }
 
-// Lista de ciudades (ya la tienes definida) y estados de México.
+// Tu lista de ciudades donde tienes distribuidores
 const ciudadesDistribuidores = [
     "Acapulco",
     "Ciudad de México",
@@ -578,66 +604,43 @@ const ciudadesDistribuidores = [
     "Monterrey"
   ];
   
-  const estadosMexico = [
-    "Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Chiapas",
-    "Chihuahua", "Coahuila", "Colima", "Durango", "Guanajuato", "Guerrero",
-    "Hidalgo", "Jalisco", "México", "Michoacán", "Morelos", "Nayarit",
-    "Nuevo León", "Oaxaca", "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí",
-    "Sinaloa", "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz",
-    "Yucatán", "Zacatecas"
-  ];
-  
   /**
- * Función que analiza el mensaje recibido y tokeniza palabra por palabra
- * para detectar si alguna coincide con nuestra lista de ciudades o estados.
- */
-function isLocationQuery(message) {
-    // Convertimos el mensaje a minúsculas para facilitar la comparación.
-    const normalizedMsg = message.toLowerCase();
-  
-    // Concatenamos ambas listas (convertidas a minúsculas).
-    const locationList = ciudadesDistribuidores
-      .map(c => c.toLowerCase())
-      .concat(estadosMexico.map(s => s.toLowerCase()));
-  
-    // Utilizamos compromise para extraer todas las palabras del mensaje.
-    const tokens = nlp(message).terms().out('array');
-  
-    // Recorremos cada token para ver si coincide con alguno de los elementos de la lista.
-    for (let token of tokens) {
-      if (locationList.includes(token.toLowerCase())) {
-        return true;
+   * Función que verifica si alguna ubicación detectada coincide con tu lista de distribuidores.
+   * @param {string} mensaje - El mensaje recibido.
+   * @returns {Promise<string|null>} - La ubicación encontrada o null si ninguna coincide.
+   */
+  async function verificarUbicacionDistribuidora(mensaje) {
+    const ubicacionesDetectadas = await detectarUbicaciones(mensaje);
+    // Recorre las ubicaciones detectadas y compara (sin distinguir mayúsculas/minúsculas)
+    for (const ubicacion of ubicacionesDetectadas) {
+      const ubicacionNormalizada = ubicacion.toLowerCase();
+      const coincide = ciudadesDistribuidores.find(ciudad =>
+        ciudad.toLowerCase() === ubicacionNormalizada
+      );
+      if (coincide) {
+        return coincide;
       }
     }
-    return false;
+    return null;
   }
-
-  /**
-   * Función para procesar la consulta de ubicación.
-   * Se busca si en el mensaje se menciona alguna ciudad de la lista.
-   */
-  function procesarConsultaUbicacion(mensaje) {
-    // Opcional: Puedes usar la función isLocationQuery para verificar
-    // o incluso extraer cuál es la entidad detectada.
-    // Por simplicidad, asumimos que se ha detectado una ubicación.
-    const distributorsLink = "https://chamoyavispa.com/#/distribuidores";
-    const phoneNumber = "8131056733";
-    
-    // Intentamos extraer la ubicación detectada (por ejemplo, la primera coincidencia).
-    const tokens = nlp(mensaje).terms().out('array');
-    const locationList = ciudadesDistribuidores
-      .map(c => c.toLowerCase())
-      .concat(estadosMexico.map(s => s.toLowerCase()));
-    let locationDetected = tokens.find(token => locationList.includes(token.toLowerCase()));
   
-    if (locationDetected) {
-      // Capitalizamos la ubicación detectada para la respuesta.
-      locationDetected = locationDetected.charAt(0).toUpperCase() + locationDetected.slice(1);
-      return `Sí, tenemos distribuidores en ${locationDetected}. Puedes ver más detalles en: ${distributorsLink}`;
+  /**
+   * Función para procesar el mensaje recibido y decidir la respuesta.
+   * Si se detecta una ubicación que coincide con tu lista, se envía la respuesta de ubicación.
+   * De lo contrario, se sigue el flujo normal (por ejemplo, procesarPregunta).
+   */
+  async function procesarMensajeConUbicacion(mensaje, idDestino, responderFn) {
+    const ubicacionEncontrada = await verificarUbicacionDistribuidora(mensaje);
+    if (ubicacionEncontrada) {
+      const respuestaUbicacion = `Sí, tenemos distribuidores en ${ubicacionEncontrada}. Puedes ver más detalles en: ${distributorsLink}`;
+      await responderFn(idDestino, respuestaUbicacion);
     } else {
-      return `Actualmente no tenemos distribuidores en esa zona. Consulta la lista completa en: ${distributorsLink} o contáctanos al ${phoneNumber} para más información.`;
+      // Si no se detecta una ubicación distribuida, se procesa el mensaje de forma normal.
+      const respuesta = await procesarPregunta(mensaje);
+      await responderFn(idDestino, respuesta);
     }
   }
+  
   
   /* ======================================
      INTEGRACIÓN EN EL WEBHOOK (POST)
@@ -690,7 +693,7 @@ function isLocationQuery(message) {
               const commentText = change.value.message;
               const commentId = change.value.comment_id;
               console.log(`Comentario en Facebook recibido: "${commentText}"`);
-              await procesarMensaje(commentText, commentId, responderComentario);
+              await procesarMensajeConUbicacion(commentText, commentId, responderComentario);
             }
           });
         }
