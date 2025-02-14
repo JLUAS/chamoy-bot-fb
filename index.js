@@ -557,10 +557,13 @@ async function obtenerEmbedding(texto) {
   }
   
   /* ======================================
-     FUNCIONALIDAD PARA RESPONDER CONSULTAS SOBRE DISTRIBUCIÓN
+     FUNCIONALIDAD PARA CONSULTAS DE UBICACIÓN
      ====================================== */
   
-  // Lista de ciudades con distribuidores
+  const distributorsLink = "https://chamoyavispa.com/#/distribuidores";
+  const phoneNumber = "8131056733";
+  
+  // Lista de ciudades donde tienes distribuidores
   const ciudadesDistribuidores = [
     "Acapulco",
     "Ciudad de México",
@@ -574,24 +577,23 @@ async function obtenerEmbedding(texto) {
     "Monterrey"
   ];
   
-  // Función para normalizar el texto (convertir a minúsculas, quitar acentos, etc.)
-  function normalizarTexto(texto) {
-    return texto.toLowerCase();
-  }
-  
-  function responderUbicacion(mensaje) {
-    const mensajeNormalizado = normalizarTexto(mensaje);
-    let ciudadEncontrada = null;
-    for (const ciudad of ciudadesDistribuidores) {
-      if (mensajeNormalizado.includes(ciudad.toLowerCase())) {
-        ciudadEncontrada = ciudad;
+  /**
+   * Función para procesar la consulta de ubicación.
+   * Se busca si en el mensaje se menciona alguna ciudad de la lista.
+   */
+  function procesarConsultaUbicacion(mensaje) {
+    const normalizedMsg = mensaje.toLowerCase();
+    let foundCity = null;
+    for (const city of ciudadesDistribuidores) {
+      if (normalizedMsg.includes(city.toLowerCase())) {
+        foundCity = city;
         break;
       }
     }
-    if (ciudadEncontrada) {
-      return `Sí, tenemos distribuidores en ${ciudadEncontrada}. ¿Te gustaría conocer más detalles?`;
+    if (foundCity) {
+      return `Sí, tenemos distribuidores en ${foundCity}. Puedes ver más detalles en este enlace: ${distributorsLink}`;
     } else {
-      return `Actualmente contamos con distribución en: ${ciudadesDistribuidores.join(', ')}. Si tu ciudad no aparece, por favor contáctanos para explorar otras opciones.`;
+      return `Actualmente no tenemos distribuidores en esa zona. Puedes consultar la lista completa en: ${distributorsLink} o enviarnos un mensaje a nuestro número ${phoneNumber} para mayor información.`;
     }
   }
   
@@ -602,16 +604,17 @@ async function obtenerEmbedding(texto) {
   app.post('/webhook', async (req, res) => {
     const data = req.body;
   
-    // Función interna para decidir el flujo según el mensaje recibido
-    async function procesarMensaje(texto, commentId, responderFn) {
-      // Si el mensaje parece ser una consulta sobre ubicación/distribución
-      if (/ubicad|distribu|donde|en que parte/i.test(texto)) {
-        const respuestaUbicacion = responderUbicacion(texto);
-        await responderFn(commentId, respuestaUbicacion);
+    // Función interna para decidir el flujo según el mensaje recibido.
+    // Si el mensaje se relaciona con ubicación, se procesa con la función de ubicación.
+    async function procesarMensaje(texto, idDestino, responderFn) {
+      // Usamos una expresión regular para detectar palabras clave de ubicación.
+      if (/ubicad|distribu|dónde|estado|ciudad|país|pais|en que parte/i.test(texto)) {
+        const respuestaUbicacion = procesarConsultaUbicacion(texto);
+        await responderFn(idDestino, respuestaUbicacion);
       } else {
-        // Procesa el mensaje normalmente (por ejemplo, con búsqueda semántica)
+        // Si no es consulta geográfica, se procesa normalmente.
         const respuesta = await procesarPregunta(texto);
-        await responderFn(commentId, respuesta);
+        await responderFn(idDestino, respuesta);
       }
     }
   
@@ -658,9 +661,9 @@ async function obtenerEmbedding(texto) {
             const message = event.message?.text;
             if (message && senderId !== process.env.PAGE_ID) {
               console.log(`Mensaje de Messenger recibido: "${message}"`);
-              // Aquí, en lugar de usar responderComentario, usamos enviarMensaje para mensajes directos
-              if (/ubicad|distribu|dónde|en que parte/i.test(message)) {
-                const respuestaUbicacion = responderUbicacion(message);
+              // Se procesa consulta de ubicación en mensajes directos de igual forma
+              if (/ubicad|distribu|dónde|estado|ciudad|país|pais|en que parte/i.test(message)) {
+                const respuestaUbicacion = procesarConsultaUbicacion(message);
                 await enviarMensaje(senderId, respuestaUbicacion);
               } else {
                 const respuesta = await procesarPregunta(message);
@@ -676,7 +679,7 @@ async function obtenerEmbedding(texto) {
   });
   
   /* ======================================
-     FUNCIONES EXISTENTES PARA RESPONDER
+     FUNCIONES PARA RESPONDER (Instagram, Facebook, Messenger)
      ====================================== */
   
   async function responderComentarioInstagram(commentId, mensaje) {
@@ -685,9 +688,7 @@ async function obtenerEmbedding(texto) {
       const response = await axios.post(
         url,
         { message: mensaje },
-        {
-          params: { access_token: APP_TOKEN_IG }
-        }
+        { params: { access_token: APP_TOKEN_IG } }
       );
       console.log('Respuesta en Instagram enviada:', response.data);
     } catch (error) {
@@ -731,3 +732,4 @@ async function obtenerEmbedding(texto) {
       console.error('Error al enviar mensaje:', error.response?.data || error.message);
     }
   }
+  
