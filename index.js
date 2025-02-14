@@ -563,8 +563,9 @@ async function obtenerEmbedding(texto) {
   const distributorsLink = "https://chamoyavispa.com/#/distribuidores";
   const phoneNumber = "8131056733";
   
-  // Lista de ciudades donde tienes distribuidores
-  const ciudadesDistribuidores = [
+
+// Lista de ciudades (ya la tienes definida) y estados de México.
+const ciudadesDistribuidores = [
     "Acapulco",
     "Ciudad de México",
     "Toluca",
@@ -577,23 +578,64 @@ async function obtenerEmbedding(texto) {
     "Monterrey"
   ];
   
+  const estadosMexico = [
+    "Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Chiapas",
+    "Chihuahua", "Coahuila", "Colima", "Durango", "Guanajuato", "Guerrero",
+    "Hidalgo", "Jalisco", "México", "Michoacán", "Morelos", "Nayarit",
+    "Nuevo León", "Oaxaca", "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí",
+    "Sinaloa", "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz",
+    "Yucatán", "Zacatecas"
+  ];
+  
+  /**
+ * Función que analiza el mensaje recibido y tokeniza palabra por palabra
+ * para detectar si alguna coincide con nuestra lista de ciudades o estados.
+ */
+function isLocationQuery(message) {
+    // Convertimos el mensaje a minúsculas para facilitar la comparación.
+    const normalizedMsg = message.toLowerCase();
+  
+    // Concatenamos ambas listas (convertidas a minúsculas).
+    const locationList = ciudadesDistribuidores
+      .map(c => c.toLowerCase())
+      .concat(estadosMexico.map(s => s.toLowerCase()));
+  
+    // Utilizamos compromise para extraer todas las palabras del mensaje.
+    const tokens = nlp(message).terms().out('array');
+  
+    // Recorremos cada token para ver si coincide con alguno de los elementos de la lista.
+    for (let token of tokens) {
+      if (locationList.includes(token.toLowerCase())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * Función para procesar la consulta de ubicación.
    * Se busca si en el mensaje se menciona alguna ciudad de la lista.
    */
   function procesarConsultaUbicacion(mensaje) {
-    const normalizedMsg = mensaje.toLowerCase();
-    let foundCity = null;
-    for (const city of ciudadesDistribuidores) {
-      if (normalizedMsg.includes(city.toLowerCase())) {
-        foundCity = city;
-        break;
-      }
-    }
-    if (foundCity) {
-      return `Sí, tenemos distribuidores en ${foundCity}. Puedes ver más detalles en este enlace: ${distributorsLink}`;
+    // Opcional: Puedes usar la función isLocationQuery para verificar
+    // o incluso extraer cuál es la entidad detectada.
+    // Por simplicidad, asumimos que se ha detectado una ubicación.
+    const distributorsLink = "https://chamoyavispa.com/#/distribuidores";
+    const phoneNumber = "8131056733";
+    
+    // Intentamos extraer la ubicación detectada (por ejemplo, la primera coincidencia).
+    const tokens = nlp(mensaje).terms().out('array');
+    const locationList = ciudadesDistribuidores
+      .map(c => c.toLowerCase())
+      .concat(estadosMexico.map(s => s.toLowerCase()));
+    let locationDetected = tokens.find(token => locationList.includes(token.toLowerCase()));
+  
+    if (locationDetected) {
+      // Capitalizamos la ubicación detectada para la respuesta.
+      locationDetected = locationDetected.charAt(0).toUpperCase() + locationDetected.slice(1);
+      return `Sí, tenemos distribuidores en ${locationDetected}. Puedes ver más detalles en: ${distributorsLink}`;
     } else {
-      return `Actualmente no tenemos distribuidores en esa zona. Puedes consultar la lista completa en: ${distributorsLink} o enviarnos un mensaje a nuestro número ${phoneNumber} para mayor información.`;
+      return `Actualmente no tenemos distribuidores en esa zona. Consulta la lista completa en: ${distributorsLink} o contáctanos al ${phoneNumber} para más información.`;
     }
   }
   
@@ -607,15 +649,14 @@ async function obtenerEmbedding(texto) {
     // Función interna para decidir el flujo según el mensaje recibido.
     // Si el mensaje se relaciona con ubicación, se procesa con la función de ubicación.
     async function procesarMensaje(texto, idDestino, responderFn) {
-      // Usamos una expresión regular para detectar palabras clave de ubicación.
-      if (/ubicad|distribu|dónde|estado|ciudad|país|pais|en que parte/i.test(texto)) {
-        const respuestaUbicacion = procesarConsultaUbicacion(texto);
-        await responderFn(idDestino, respuestaUbicacion);
-      } else {
-        // Si no es consulta geográfica, se procesa normalmente.
-        const respuesta = await procesarPregunta(texto);
-        await responderFn(idDestino, respuesta);
-      }
+        if (isLocationQuery(texto)) {
+          const respuestaUbicacion = procesarConsultaUbicacion(texto);
+          await responderFn(idDestino, respuestaUbicacion);
+        } else {
+          // Si no es una consulta geográfica, sigue el flujo normal (por ejemplo, con embeddings).
+          const respuesta = await procesarPregunta(texto);
+          await responderFn(idDestino, respuesta);
+        }
     }
   
     // Procesar eventos de Instagram
