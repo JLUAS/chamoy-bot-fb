@@ -487,9 +487,9 @@ const baseQAWithEmbeddings = [];
 // Función para obtener el embedding de un texto (asegúrate de que tu versión de la API sea compatible)
 async function obtenerEmbedding(texto) {
     try {
-      const response = await openai.createEmbedding({
-        model: "text-embedding-ada-002",
-        input: texto,
+        const response = await openai.embeddings.create({
+            model: "text-embedding-ada-002",
+            input: texto,
       });
       if (
         response &&
