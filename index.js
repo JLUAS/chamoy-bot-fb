@@ -764,7 +764,7 @@ async function procesarMensajeModificado(mensaje, idDestino, responderFn) {
               const commentText = change.value.message;
               const commentId = change.value.comment_id;
               console.log(`Comentario en Facebook recibido: "${commentText}"`);
-              await procesarMensajeConUbicacion(commentText, commentId, responderComentario);
+              await procesarMensajeModificado(commentText, commentId, responderComentario);
             }
           });
         }
