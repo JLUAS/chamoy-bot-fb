@@ -640,8 +640,8 @@ const ciudadesDistribuidores = [
       await responderFn(idDestino, respuesta);
     }
   }
-  
-// Función para determinar si el mensaje es una consulta sobre distribuidores utilizando ChatGPT
+
+// Función para determinar si el mensaje es una consulta sobre distribuidores utilizando OpenAI
 async function isDistributorQuery(mensaje) {
   const prompt = `Determina si el siguiente mensaje es una consulta sobre la existencia de un distribuidor en una ciudad. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
   try {
@@ -652,16 +652,15 @@ async function isDistributorQuery(mensaje) {
       temperature: 0
     });
     const answer = completion.choices[0].text.trim().toLowerCase();
-    // Se espera que la respuesta sea "true" o "false"
     return answer === "true";
   } catch (error) {
     console.error("Error en isDistributorQuery:", error);
-    // En caso de error, se asume que no es una consulta de distribuidor
+    // En caso de error, asumimos que no es una consulta de distribuidor
     return false;
   }
 }
 
-// Función para procesar consultas de ubicación (ya existente, se usa verificarUbicacionDistribuidora)
+// Función para procesar consultas de ubicación
 async function procesarConsultaUbicacion(mensaje) {
   const ciudad = await verificarUbicacionDistribuidora(mensaje);
   if (ciudad) {
@@ -671,16 +670,16 @@ async function procesarConsultaUbicacion(mensaje) {
   }
 }
 
-// Función modificada para procesar el mensaje según corresponda
+// Función que decide el flujo a seguir según la consulta
 async function procesarMensajeModificado(mensaje, idDestino, responderFn) {
-  // Primero, determina si el mensaje es una consulta de distribuidor
+  // Primero, se clasifica el mensaje
   const esConsultaDistribuidor = await isDistributorQuery(mensaje);
   if (esConsultaDistribuidor) {
-    // Si es una consulta de distribuidor, revisa la ubicación
+    // Si es consulta de distribuidor, procesa la ubicación
     const respuestaUbicacion = await procesarConsultaUbicacion(mensaje);
     await responderFn(idDestino, respuestaUbicacion);
   } else {
-    // Si no, se procesa la pregunta mediante el método de embeddings
+    // De lo contrario, se procesa la consulta con la base Q&A (embeddings)
     const respuesta = await procesarPregunta(mensaje);
     await responderFn(idDestino, respuesta);
   }
@@ -719,14 +718,7 @@ async function procesarMensajeModificado(mensaje, idDestino, responderFn) {
             const commentText = change.value.text;
             const commentId = change.value.id;
             console.log(`Comentario de Instagram recibido: "${commentText}"`);
-            const esConsultaDistribuidor = await isDistributorQuery(message);
-            if (esConsultaDistribuidor) {
-              const respuestaUbicacion = await procesarConsultaUbicacion(message);
-              await enviarMensaje(commentId, respuestaUbicacion);
-            } else {
-              const respuesta = await procesarPregunta(message);
-              await enviarMensaje(commentId, respuesta);
-            }
+            await procesarMensajeModificado(commentText, commentId, responderComentario);
           }
         });
       });
