@@ -641,6 +641,52 @@ const ciudadesDistribuidores = [
     }
   }
   
+// Función para determinar si el mensaje es una consulta sobre distribuidores utilizando ChatGPT
+async function isDistributorQuery(mensaje) {
+  const prompt = `Determina si el siguiente mensaje es una consulta sobre la existencia de un distribuidor en una ciudad. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
+  try {
+    const completion = await openai.completions.create({
+      model: "text-davinci-003",
+      prompt: prompt,
+      max_tokens: 5,
+      temperature: 0
+    });
+    const answer = completion.choices[0].text.trim().toLowerCase();
+    // Se espera que la respuesta sea "true" o "false"
+    return answer === "true";
+  } catch (error) {
+    console.error("Error en isDistributorQuery:", error);
+    // En caso de error, se asume que no es una consulta de distribuidor
+    return false;
+  }
+}
+
+// Función para procesar consultas de ubicación (ya existente, se usa verificarUbicacionDistribuidora)
+async function procesarConsultaUbicacion(mensaje) {
+  const ciudad = await verificarUbicacionDistribuidora(mensaje);
+  if (ciudad) {
+    return `Sí, tenemos distribuidores en ${ciudad}. Puedes ver más detalles en: ${distributorsLink}`;
+  } else {
+    return "Lamentablemente, no contamos con distribuidores en la ciudad que mencionas. Por favor, verifica o contáctanos para más información.";
+  }
+}
+
+// Función modificada para procesar el mensaje según corresponda
+async function procesarMensajeModificado(mensaje, idDestino, responderFn) {
+  // Primero, determina si el mensaje es una consulta de distribuidor
+  const esConsultaDistribuidor = await isDistributorQuery(mensaje);
+  if (esConsultaDistribuidor) {
+    // Si es una consulta de distribuidor, revisa la ubicación
+    const respuestaUbicacion = await procesarConsultaUbicacion(mensaje);
+    await responderFn(idDestino, respuestaUbicacion);
+  } else {
+    // Si no, se procesa la pregunta mediante el método de embeddings
+    const respuesta = await procesarPregunta(mensaje);
+    await responderFn(idDestino, respuesta);
+  }
+}
+
+
   
   /* ======================================
      INTEGRACIÓN EN EL WEBHOOK (POST)
@@ -673,7 +719,14 @@ const ciudadesDistribuidores = [
             const commentText = change.value.text;
             const commentId = change.value.id;
             console.log(`Comentario de Instagram recibido: "${commentText}"`);
-            await procesarMensaje(commentText, commentId, responderComentarioInstagram);
+            const esConsultaDistribuidor = await isDistributorQuery(message);
+            if (esConsultaDistribuidor) {
+              const respuestaUbicacion = await procesarConsultaUbicacion(message);
+              await enviarMensaje(commentId, respuestaUbicacion);
+            } else {
+              const respuesta = await procesarPregunta(message);
+              await enviarMensaje(commentId, respuesta);
+            }
           }
         });
       });
