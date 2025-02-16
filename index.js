@@ -660,9 +660,48 @@ async function isDistributorQuery(mensaje) {
   }
 }
 
+async function buscarCiudad(mensaje) {
+  const prompt = `Determina si la ciudad por la cual se pregunta es parte de esta lista: Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey. Responde solo con "true" o "false" "${mensaje}"`;
+  try {
+    const completion = await openai.completions.create({
+      model: "text-davinci-003",
+      prompt: prompt,
+      max_tokens: 5,
+      temperature: 0
+    });
+    const answer = completion.choices[0].text.trim().toLowerCase();
+    if(answer === "true"){
+      const extraerCiudadFun = await extraerCiudad(mensaje)
+      return extraerCiudadFun
+    }
+
+  } catch (error) {
+    console.error("Error en isDistributorQuery:", error);
+    // En caso de error, asumimos que no es una consulta de distribuidor
+    return false;
+  }
+}
+async function extraerCiudad(mensaje) {
+  const prompt = `Extrae el nombre de la ciudad del siguiente mensaje. Mensaje: "${mensaje}"`;
+  try {
+    const completion = await openai.completions.create({
+      model: "text-davinci-003",
+      prompt: prompt,
+      max_tokens: 5,
+      temperature: 0
+    });
+    const answer = completion.choices[0]
+    return answer
+  } catch (error) {
+    console.error("Error en isDistributorQuery:", error);
+    // En caso de error, asumimos que no es una consulta de distribuidor
+    return false;
+  }
+}
+
 // Función para procesar consultas de ubicación
 async function procesarConsultaUbicacion(mensaje) {
-  const ciudad = await verificarUbicacionDistribuidora(mensaje);
+  const ciudad = await buscarCiudad()
   if (ciudad) {
     return `Sí, tenemos distribuidores en ${ciudad}. Puedes ver más detalles en: ${distributorsLink}`;
   } else {
@@ -676,7 +715,7 @@ async function procesarMensajeModificado(mensaje, idDestino, responderFn) {
   const esConsultaDistribuidor = await isDistributorQuery(mensaje);
   if (esConsultaDistribuidor) {
     // Si es consulta de distribuidor, procesa la ubicación
-    const respuestaUbicacion = await procesarConsultaUbicacion(mensaje);
+    const respuestaUbicacion = await procesarConsultaUbicacion()
     await responderFn(idDestino, respuestaUbicacion);
   } else {
     // De lo contrario, se procesa la consulta con la base Q&A (embeddings)
@@ -693,20 +732,6 @@ async function procesarMensajeModificado(mensaje, idDestino, responderFn) {
   
   app.post('/webhook', async (req, res) => {
     const data = req.body;
-  
-    // Función interna para decidir el flujo según el mensaje recibido.
-    // Si el mensaje se relaciona con ubicación, se procesa con la función de ubicación.
-    async function procesarMensaje(texto, idDestino, responderFn) {
-        if (isLocationQuery(texto)) {
-          const respuestaUbicacion = procesarConsultaUbicacion(texto);
-          await responderFn(idDestino, respuestaUbicacion);
-        } else {
-          // Si no es una consulta geográfica, sigue el flujo normal (por ejemplo, con embeddings).
-          const respuesta = await procesarPregunta(texto);
-          await responderFn(idDestino, respuesta);
-        }
-    }
-  
     // Procesar eventos de Instagram
     if (data.object === 'instagram') {
       data.entry.forEach((entry) => {
