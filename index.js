@@ -646,7 +646,7 @@ async function isDistributorQuery(mensaje) {
   const prompt = `Determina si el siguiente mensaje es una consulta sobre la existencia de un distribuidor en una ciudad. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
   try {
     const completion = await openai.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       prompt: prompt,
       max_tokens: 5,
       temperature: 0
@@ -665,7 +665,7 @@ async function buscarCiudad(mensaje) {
   const prompt = `Determina si la ciudad por la cual se pregunta es parte de esta lista: Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey. Responde solo con "true" o "false" "${mensaje}"`;
   try {
     const completion = await openai.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       prompt: prompt,
       max_tokens: 5,
       temperature: 0
@@ -686,7 +686,7 @@ async function extraerCiudad(mensaje) {
   const prompt = `Extrae el nombre de la ciudad del siguiente mensaje. Mensaje: "${mensaje}"`;
   try {
     const completion = await openai.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       prompt: prompt,
       max_tokens: 5,
       temperature: 0
