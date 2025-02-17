@@ -654,7 +654,7 @@ async function isDistributorQuery(mensaje) {
       max_tokens: 5,
       temperature: 0
     });
-    const answer = completion.choices[0].text.trim().toLowerCase();
+    const answer = completion.choices[0].message.trim().toLowerCase();
     console.log("Is distribution query", answer)
     return answer === "true";
   } catch (error) {
@@ -676,7 +676,7 @@ async function buscarCiudad(mensaje) {
       max_tokens: 5,
       temperature: 0
     });
-    const answer = completion.choices[0].text.trim().toLowerCase();
+    const answer = completion.choices[0].message.trim().toLowerCase();
     if(answer === "true"){
       const extraerCiudadFun = await extraerCiudad(mensaje)
       return extraerCiudadFun
