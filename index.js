@@ -655,40 +655,15 @@ async function isDistributorQuery(mensaje) {
       temperature: 0
     });
     const answer = completion.choices[0].message.content.trim().toLowerCase();
-    console.log("Is distribution query", answer)
+    console.log("Is distribution query:", answer);
     return answer === "true";
   } catch (error) {
     console.error("Error en isDistributorQuery:", error);
-    // En caso de error, asumimos que no es una consulta de distribuidor
     return false;
   }
 }
 
-async function buscarCiudad(mensaje) {
-  const prompt = `Determina si la ciudad por la cual se pregunta es parte de esta lista: Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey. Responde solo con "true" o "false" "${mensaje}"`;
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "Eres un asistente que responde únicamente 'true' o 'false'." },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 5,
-      temperature: .5
-    });
-    const answer = completion.choices[0].message.content.trim().toLowerCase();
-    console.log("buscarCiudad", answer)
-    if(answer === "true"){
-      const extraerCiudadFun = await extraerCiudad(mensaje)
-      return extraerCiudadFun
-    }
-
-  } catch (error) {
-    console.error("Error en isDistributorQuery:", error);
-    // En caso de error, asumimos que no es una consulta de distribuidor
-    return false;
-  }
-}
+// Función para extraer el nombre de la ciudad del mensaje
 async function extraerCiudad(mensaje) {
   const prompt = `Extrae el nombre de la ciudad del siguiente mensaje. Mensaje: "${mensaje}"`;
   try {
@@ -701,19 +676,48 @@ async function extraerCiudad(mensaje) {
       max_tokens: 5,
       temperature: 0
     });
-    const answer = completion.choices[0]
-    console.log(answer)
-    return answer
+    // Accedemos al contenido correcto
+    const answer = completion.choices[0].message.content.trim();
+    console.log("Extraer ciudad:", answer);
+    return answer;
   } catch (error) {
-    console.error("Error en isDistributorQuery:", error);
-    // En caso de error, asumimos que no es una consulta de distribuidor
+    console.error("Error en extraerCiudad:", error);
+    return false;
+  }
+}
+
+// Función para buscar si la ciudad mencionada está en la lista de distribuidores
+async function buscarCiudad(mensaje) {
+  const prompt = `Determina si la ciudad mencionada en el siguiente mensaje es parte de la siguiente lista: Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        { role: "system", content: "Eres un asistente que responde únicamente 'true' o 'false'." },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: 5,
+      temperature: 0.5
+    });
+    const answer = completion.choices[0].message.content.trim().toLowerCase();
+    console.log("buscarCiudad:", answer);
+    if (answer === "true") {
+      // Si la respuesta es "true", extraemos el nombre de la ciudad
+      const ciudadExtraida = await extraerCiudad(mensaje);
+      return ciudadExtraida;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.error("Error en buscarCiudad:", error);
     return false;
   }
 }
 
 // Función para procesar consultas de ubicación
 async function procesarConsultaUbicacion(mensaje) {
-  const ciudad = await buscarCiudad()
+  // Es importante pasar el mensaje a buscarCiudad
+  const ciudad = await buscarCiudad(mensaje);
   if (ciudad) {
     return `Sí, tenemos distribuidores en ${ciudad}. Puedes ver más detalles en: ${distributorsLink}`;
   } else {
@@ -723,19 +727,15 @@ async function procesarConsultaUbicacion(mensaje) {
 
 // Función que decide el flujo a seguir según la consulta
 async function procesarMensajeModificado(mensaje, idDestino, responderFn) {
-  // Primero, se clasifica el mensaje
   const esConsultaDistribuidor = await isDistributorQuery(mensaje);
   if (esConsultaDistribuidor) {
-    // Si es consulta de distribuidor, procesa la ubicación
-    const respuestaUbicacion = await procesarConsultaUbicacion()
+    const respuestaUbicacion = await procesarConsultaUbicacion(mensaje);
     await responderFn(idDestino, respuestaUbicacion);
   } else {
-    // De lo contrario, se procesa la consulta con la base Q&A (embeddings)
     const respuesta = await procesarPregunta(mensaje);
     await responderFn(idDestino, respuesta);
   }
 }
-
 
   
   /* ======================================
