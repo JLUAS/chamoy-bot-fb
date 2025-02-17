@@ -674,7 +674,7 @@ async function buscarCiudad(mensaje) {
         { role: "user", content: prompt }
       ],
       max_tokens: 5,
-      temperature: 0
+      temperature: .5
     });
     const answer = completion.choices[0].message.content.trim().toLowerCase();
     console.log("buscarCiudad", answer)
