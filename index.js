@@ -654,7 +654,7 @@ async function isDistributorQuery(mensaje) {
       max_tokens: 5,
       temperature: 0
     });
-    const answer = completion.choices[0].message.trim().toLowerCase();
+    const answer = completion.choices[0].message.content.trim().toLowerCase();
     console.log("Is distribution query", answer)
     return answer === "true";
   } catch (error) {
