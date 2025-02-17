@@ -691,7 +691,7 @@ async function extraerCiudad(mensaje) {
 
 // Función para buscar si la ciudad mencionada está en la lista de distribuidores
 async function buscarCiudad(mensaje) {
-  const prompt = `Determina si la ciudad mencionada en el siguiente mensaje es parte de la siguiente lista: Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
+  const prompt = `Determina si la ciudad mencionada en el siguiente mensaje es parte de la siguiente lista: Estados Unidos, Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
