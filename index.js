@@ -677,6 +677,7 @@ async function buscarCiudad(mensaje) {
       temperature: 0
     });
     const answer = completion.choices[0].message.content.trim().toLowerCase();
+    console.log("buscarCiudad", answer)
     if(answer === "true"){
       const extraerCiudadFun = await extraerCiudad(mensaje)
       return extraerCiudadFun
@@ -701,6 +702,7 @@ async function extraerCiudad(mensaje) {
       temperature: 0
     });
     const answer = completion.choices[0]
+    console.log(answer)
     return answer
   } catch (error) {
     console.error("Error en isDistributorQuery:", error);
