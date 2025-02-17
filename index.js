@@ -693,7 +693,7 @@ async function extraerCiudad(mensaje) {
 
 // Función para buscar si la ciudad mencionada está en la lista de distribuidores
 async function buscarCiudad(mensaje) {
-  const prompt = `Determina si la ciudad mencionada en el siguiente mensaje es parte de la siguiente lista: Estados Unidos, Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
+  const prompt = `Determina si la ciudad mencionada en el siguiente mensaje es parte de la siguiente lista: Estados Unidos, USA, US, EU, EUA, Acapulco, Ciudad de México, Toluca, Guadalajara, Puebla, Tijuana, Veracruz, Oaxaca, Torreón y Monterrey. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
@@ -724,7 +724,7 @@ async function procesarConsultaUbicacion(mensaje) {
   // Es importante pasar el mensaje a buscarCiudad
   const ciudad = await buscarCiudad(mensaje);
   if (ciudad) {
-    return `Sí, tenemos distribuidores en ${ciudad}. Puedes ver más detalles en: ${distributorsLink}`;
+    return `Sí, tenemos distribuidores. Puedes ver más detalles en: ${distributorsLink}`;
   } else {
     return "Lamentablemente, no contamos con distribuidores en la ciudad que mencionas. Por favor, verifica o contáctanos para más información.";
   }
