@@ -676,7 +676,7 @@ async function buscarCiudad(mensaje) {
       max_tokens: 5,
       temperature: 0
     });
-    const answer = completion.choices[0].message.trim().toLowerCase();
+    const answer = completion.choices[0].message.content.trim().toLowerCase();
     if(answer === "true"){
       const extraerCiudadFun = await extraerCiudad(mensaje)
       return extraerCiudadFun
