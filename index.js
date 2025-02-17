@@ -647,7 +647,10 @@ async function isDistributorQuery(mensaje) {
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
-      prompt: prompt,
+      messages: [
+        { role: "system", content: "Eres un asistente que responde únicamente 'true' o 'false'." },
+        { role: "user", content: prompt }
+      ],
       max_tokens: 5,
       temperature: 0
     });
@@ -666,7 +669,10 @@ async function buscarCiudad(mensaje) {
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
-      prompt: prompt,
+      messages: [
+        { role: "system", content: "Eres un asistente que responde únicamente 'true' o 'false'." },
+        { role: "user", content: prompt }
+      ],
       max_tokens: 5,
       temperature: 0
     });
@@ -687,7 +693,10 @@ async function extraerCiudad(mensaje) {
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
-      prompt: prompt,
+      messages: [
+        { role: "system", content: "Eres un asistente que extrae nombres de ciudades de mensajes." },
+        { role: "user", content: prompt }
+      ],
       max_tokens: 5,
       temperature: 0
     });
