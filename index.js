@@ -637,7 +637,7 @@ const ciudadesDistribuidores = [
   async function procesarMensajeConUbicacion(mensaje, idDestino, responderFn) {
     const ubicacionEncontrada = await verificarUbicacionDistribuidora(mensaje);
     if (ubicacionEncontrada) {
-      const respuestaUbicacion = `Sí, tenemos distribuidores en ${ubicacionEncontrada}. Puedes ver más detalles en: ${distributorsLink}`;
+      const respuestaUbicacion = `Sí, tenemos distribuidores en donde nos preguntas. Puedes ver más detalles en: ${distributorsLink}`;
       await responderFn(idDestino, respuestaUbicacion);
     } else {
       // Si no se detecta una ubicación distribuida, se procesa el mensaje de forma normal.
