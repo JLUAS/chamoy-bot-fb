@@ -648,7 +648,7 @@ const ciudadesDistribuidores = [
 
 // Función para determinar si el mensaje es una consulta sobre distribuidores utilizando OpenAI
 async function isDistributorQuery(mensaje) {
-  const prompt = `Determina si el siguiente mensaje es una consulta sobre la existencia de un distribuidor en una ciudad. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
+  const prompt = `Determina si se esta mencionando una ciudad o estado de México o Estados Unidos. Responde solo con "true" o "false". Mensaje: "${mensaje}"`;
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
@@ -741,11 +741,6 @@ async function procesarMensajeModificado(mensaje, idDestino, responderFn) {
     await responderFn(idDestino, respuesta);
   }
 }
-
-  
-  /* ======================================
-     INTEGRACIÓN EN EL WEBHOOK (POST)
-     ====================================== */
   
   app.post('/webhook', async (req, res) => {
     const data = req.body;
