@@ -78,10 +78,6 @@ app.get('/webhook', (req, res) => {
   }
 });
 
-/* ======================================
-   FUNCIONALIDAD DE Q&A CON BÚSQUEDA SEMÁNTICA
-   ====================================== */
-
 // Nuestra "base de datos" de Q&A (formato: mensajes con role "user" y "assistant") 
 const baseQA = [
     {"messages": [{"role": "user", "content": "me puedes cotizar"}, {"role": "assistant", "content": "Hola, soy la avispa. Buen día, gracias por su interés. Con mucho gusto podemos ofrecerle una cotización, por favor envianos un mensaje por whatsapp al 8131056733"}]},      
@@ -788,14 +784,8 @@ async function procesarMensajeModificado(mensaje, idDestino, responderFn) {
             const message = event.message?.text;
             if (message && senderId !== process.env.PAGE_ID) {
               console.log(`Mensaje de Messenger recibido: "${message}"`);
-              // Se procesa consulta de ubicación en mensajes directos de igual forma
-              if (/ubicad|distribu|dónde|estado|ciudad|país|pais|en que parte/i.test(message)) {
-                const respuestaUbicacion = procesarConsultaUbicacion(message);
-                await enviarMensaje(senderId, respuestaUbicacion);
-              } else {
-                const respuesta = await procesarPregunta(message);
-                await enviarMensaje(senderId, respuesta);
-              }
+              // Se procesa consulta de ubicación en mensajes directos de igual forma          
+              await procesarMensajeModificado(message, senderId, enviarMensaje);
             }
           });
         }
